@@ -1,0 +1,10 @@
+plugins {
+    id 'java-library'
+}
+
+group = rootProject.group + ".model"
+
+dependencies {
+    api project(":model")
+    api project(":integrity")
+}

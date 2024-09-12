@@ -1,0 +1,5 @@
+group = rootProject.group + ".integrity"
+
+dependencies {
+    implementation project(":model")
+}

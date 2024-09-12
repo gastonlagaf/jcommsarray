@@ -1,0 +1,29 @@
+group = 'com.gastonlagaf.stun'
+version = '1.0-SNAPSHOT'
+
+subprojects {
+
+    apply plugin: 'java'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        withSourcesJar()
+    }
+
+    dependencies {
+        implementation "org.projectlombok:lombok:${lombok_version}"
+
+        annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+
+        testImplementation platform("org.junit:junit-bom:${junit_version}")
+        testImplementation "org.junit.jupiter:junit-jupiter"
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+}

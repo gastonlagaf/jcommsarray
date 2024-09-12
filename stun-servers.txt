@@ -1,0 +1,10 @@
+stun.cope.es
+stun.gmx.de
+stun.gmx.net
+stun.it1.hr
+stun.solcon.nl
+relay.webwormhole.io
+stun.solnet.ch
+stun.sonetel.net
+stun.uls.co.za
+stun.antisip.com (RFC 5780)
