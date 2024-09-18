@@ -2,8 +2,6 @@ package com.gastonlagaf.stun.codec.attribute;
 
 import com.gastonlagaf.stun.codec.attribute.impl.*;
 import com.gastonlagaf.stun.model.KnownAttributeName;
-import com.gastonlagaf.stun.model.PasswordAlgorithm;
-import com.gastonlagaf.stun.user.model.UserDetails;
 
 import java.util.Map;
 

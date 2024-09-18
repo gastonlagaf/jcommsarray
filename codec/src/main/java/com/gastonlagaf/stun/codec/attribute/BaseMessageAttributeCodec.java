@@ -1,11 +1,11 @@
 package com.gastonlagaf.stun.codec.attribute;
 
+import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.codec.util.CodecUtils;
 import com.gastonlagaf.stun.model.MessageAttribute;
 import com.gastonlagaf.stun.model.MessageHeader;
 
 import java.nio.ByteBuffer;
-import java.util.stream.IntStream;
 
 public abstract class BaseMessageAttributeCodec<T extends MessageAttribute> implements MessageAttributeCodec {
 
@@ -29,7 +29,7 @@ public abstract class BaseMessageAttributeCodec<T extends MessageAttribute> impl
     }
 
     @Override
-    public ByteBuffer encode(MessageHeader messageHeader, MessageAttribute messageAttribute) {
+    public void encode(MessageHeader messageHeader, MessageAttribute messageAttribute, NonResizableBuffer dest) {
         Class<T> type = getType();
         if (!type.isAssignableFrom(messageAttribute.getClass())) {
             throw new IllegalArgumentException("Codec got invalid message for encoding: " + messageAttribute.getClass().getSimpleName());
@@ -37,14 +37,11 @@ public abstract class BaseMessageAttributeCodec<T extends MessageAttribute> impl
         byte[] encodedValue = this.encodeValue(messageHeader, type.cast(messageAttribute));
         Integer padding = getPaddingLength(encodedValue.length);
 
-        ByteBuffer result = ByteBuffer.allocate(ATTRIBUTE_HEADER_LENGTH + encodedValue.length + padding);
-        CodecUtils.writeShort(result, messageAttribute.getType());
-        CodecUtils.writeShort(result, encodedValue.length);
-        result.put(encodedValue);
+        dest.write(CodecUtils.shortToByteArray(messageAttribute.getType().shortValue()));
+        dest.write(CodecUtils.shortToByteArray((short) encodedValue.length));
+        dest.write(encodedValue);
 
-        IntStream.range(0, padding).forEach(it -> result.put(PADDING));
-
-        return result;
+        dest.pad(padding);
     }
 
     protected abstract Class<T> getType();

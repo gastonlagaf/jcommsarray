@@ -1,5 +1,6 @@
 package com.gastonlagaf.stun.codec.attribute;
 
+import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.model.MessageAttribute;
 import com.gastonlagaf.stun.model.MessageHeader;
 
@@ -9,6 +10,6 @@ public interface MessageAttributeCodec {
 
     MessageAttribute decode(MessageHeader messageHeader, Integer type, ByteBuffer buffer);
 
-    ByteBuffer encode(MessageHeader messageHeader, MessageAttribute messageAttribute);
+    void encode(MessageHeader messageHeader, MessageAttribute messageAttribute, NonResizableBuffer dest);
 
 }

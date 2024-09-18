@@ -3,12 +3,12 @@ package com.gastonlagaf.stun.codec.impl;
 import com.gastonlagaf.stun.codec.MessageCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodecContainer;
+import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.codec.util.CodecUtils;
 import com.gastonlagaf.stun.integrity.utils.IntegrityUtils;
 import com.gastonlagaf.stun.model.*;
 import com.gastonlagaf.stun.user.model.UserDetails;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,18 +38,17 @@ public class DefaultMessageCodec implements MessageCodec {
             message.getAttributes().put(passwordAlgorithmAttribute.getType(), passwordAlgorithmAttribute);
         }
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        NonResizableBuffer buffer = new NonResizableBuffer();
 
-        MessageHeader header = new MessageHeader(message.getHeader(), baos.size());
-        encodeHeader(header, baos);
+        MessageHeader header = new MessageHeader(message.getHeader(), buffer.size());
+        encodeHeader(header, buffer);
         for (MessageAttribute attribute: message.getAttributes().values()) {
             MessageAttributeCodec codec = codecContainer.get(attribute.getType());
-            ByteBuffer serializedAttribute = codec.encode(message.getHeader(), attribute);
-            baos.writeBytes(serializedAttribute.array());
+            codec.encode(message.getHeader(), attribute, buffer);
         }
-        encodeIntegrityIfRequired(header, baos);
+        encodeIntegrityIfRequired(header, buffer);
 
-        byte[] result = baos.toByteArray();
+        byte[] result = buffer.toByteArray();
         IntegrityUtils.setLength(result, result.length - MessageHeader.LENGTH);
         return ByteBuffer.wrap(result);
     }
@@ -70,11 +69,11 @@ public class DefaultMessageCodec implements MessageCodec {
         return new Message(header, attributes);
     }
 
-    private void encodeHeader(MessageHeader header, ByteArrayOutputStream dest) {
-        dest.writeBytes(CodecUtils.shortToByteArray(header.getType().getCode().shortValue()));
-        dest.writeBytes(CodecUtils.shortToByteArray(header.getLength().shortValue()));
-        dest.writeBytes(CodecUtils.intToByteArray(header.getMagicCookie()));
-        dest.writeBytes(header.getTransactionId());
+    private void encodeHeader(MessageHeader header, NonResizableBuffer dest) {
+        dest.write(CodecUtils.shortToByteArray(header.getType().getCode().shortValue()));
+        dest.write(CodecUtils.shortToByteArray(header.getLength().shortValue()));
+        dest.write(CodecUtils.intToByteArray(header.getMagicCookie()));
+        dest.write(header.getTransactionId());
     }
 
     private MessageHeader decodeHeader(ByteBuffer byteBuffer) {
@@ -92,18 +91,16 @@ public class DefaultMessageCodec implements MessageCodec {
         return new MessageHeader(typeCode, length, transactionId);
     }
 
-    private void encodeIntegrityIfRequired(MessageHeader messageHeader, ByteArrayOutputStream dest) {
+    private void encodeIntegrityIfRequired(MessageHeader messageHeader, NonResizableBuffer buffer) {
         if (null == userDetails) {
             return;
         }
-        byte[] precedingBytes = dest.toByteArray();
+        byte[] precedingBytes = buffer.toByteArray();
         MessageIntegrityAttribute messageIntegrityAttribute = new MessageIntegrityAttribute(
                 KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode(), precedingBytes,
                 userDetails.getUsername(), userDetails.getRealm(), userDetails.getPassword(), passwordAlgorithm
         );
-        byte[] encodedAttribute = codecContainer.get(messageIntegrityAttribute.getType())
-                .encode(messageHeader, messageIntegrityAttribute).array();
-        dest.writeBytes(encodedAttribute);
+        codecContainer.get(messageIntegrityAttribute.getType()).encode(messageHeader, messageIntegrityAttribute, buffer);
     }
 
 }

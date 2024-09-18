@@ -1,6 +1,7 @@
 package com.gastonlagaf.stun.codec.attribute.impl;
 
 import com.gastonlagaf.stun.codec.attribute.BaseMessageAttributeCodec;
+import com.gastonlagaf.stun.codec.util.CodecUtils;
 import com.gastonlagaf.stun.model.AddressErrorCodeAttribute;
 import com.gastonlagaf.stun.model.IpFamily;
 import com.gastonlagaf.stun.model.MessageHeader;
@@ -44,7 +45,7 @@ public class AddressErrorCodeAttributeCodec extends BaseMessageAttributeCodec<Ad
 
         ByteBuffer byteBuffer = ByteBuffer.allocate(FIXED_PART_VALUE_LENGTH + reasonBytes.length);
         byteBuffer.put(messageAttribute.getIpFamily().getCode().byteValue());
-        byteBuffer.putShort((short) errorClass);
+        byteBuffer.put(CodecUtils.shortToByteArray((short)errorClass));
         byteBuffer.put((byte) errorNumber);
         byteBuffer.put(reasonBytes);
 

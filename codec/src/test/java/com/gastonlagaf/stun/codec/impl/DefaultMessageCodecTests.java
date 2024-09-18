@@ -2,12 +2,15 @@ package com.gastonlagaf.stun.codec.impl;
 
 import com.gastonlagaf.stun.codec.MessageCodec;
 import com.gastonlagaf.stun.codec.attribute.impl.MessageIntegrityAttributeCodec;
+import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.model.*;
 import com.gastonlagaf.stun.user.model.UserDetails;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HexFormat;
@@ -25,9 +28,15 @@ public class DefaultMessageCodecTests {
 
         Message message = new Message(header, map);
 
+        Instant start = Instant.now();
         ByteBuffer buffer = messageCodec.encode(message);
+        Instant end = Instant.now();
+        System.out.println(Duration.between(start, end).toMillis());
 
+        start = Instant.now();
         Message newMessage = messageCodec.decode(buffer);
+        end = Instant.now();
+        System.out.println(Duration.between(start, end).toMillis());
 
         Assertions.assertEquals(
                 new String(message.getHeader().getTransactionId()),
@@ -62,9 +71,9 @@ public class DefaultMessageCodecTests {
                 KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode(), decodedAttribute.getPrecedingBytes(),
                 userDetails.getUsername(), userDetails.getRealm(), userDetails.getPassword(), PasswordAlgorithm.SHA256
         );
-        byte[] encodedAttribute = new MessageIntegrityAttributeCodec().encode(
-                decodedMessage.getHeader(), attribute
-        ).array();
+        NonResizableBuffer buffer = new NonResizableBuffer();
+        new MessageIntegrityAttributeCodec().encode(decodedMessage.getHeader(), attribute, buffer);
+        byte[] encodedAttribute = buffer.toByteArray();
         byte[] encodedPrecededBytes = Arrays.copyOfRange(encodedAttribute, 4, encodedAttribute.length);
 
         Assertions.assertArrayEquals(decodedAttribute.getValue(), encodedPrecededBytes);

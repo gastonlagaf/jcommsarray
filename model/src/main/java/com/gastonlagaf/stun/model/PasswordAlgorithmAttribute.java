@@ -5,7 +5,7 @@ import lombok.Getter;
 @Getter
 public class PasswordAlgorithmAttribute extends MessageAttribute {
 
-    private static final Integer DEFAULT_VALUE_LENGTH = 4;
+    public static final Integer DEFAULT_VALUE_LENGTH = 4;
 
     private final PasswordAlgorithm value;
 

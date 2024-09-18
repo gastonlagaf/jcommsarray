@@ -4,7 +4,6 @@ import com.gastonlagaf.stun.codec.attribute.BaseMessageAttributeCodec;
 import com.gastonlagaf.stun.model.ErrorCodeAttribute;
 import com.gastonlagaf.stun.model.MessageHeader;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -48,12 +47,12 @@ public class ErrorCodeAttributeCodec extends BaseMessageAttributeCodec<ErrorCode
 
         byte[] reasonBytes = messageAttribute.getReasonPhrase().getBytes(StandardCharsets.UTF_8);
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos.writeBytes(classBytes);
-        baos.write((byte) errorNumber);
-        baos.writeBytes(reasonBytes);
+        ByteBuffer buffer = ByteBuffer.allocate(CLASS_AND_NUMBER_LENGTH + reasonBytes.length);
+        buffer.put(classBytes);
+        buffer.put((byte) errorNumber);
+        buffer.put(reasonBytes);
 
-        return baos.toByteArray();
+        return buffer.array();
     }
 
 }

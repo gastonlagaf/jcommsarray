@@ -35,8 +35,8 @@ public class MappedAddressAttributeCodec extends BaseMessageAttributeCodec<Addre
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(ATTRIBUTE_DETAILS_LENGTH + messageAttribute.getIpFamily().getAddressLength());
-        CodecUtils.writeShort(buffer, messageAttribute.getIpFamily().getCode());
-        CodecUtils.writeShort(buffer, port);
+        buffer.put(CodecUtils.shortToByteArray(messageAttribute.getIpFamily().getCode().shortValue()));
+        buffer.put(CodecUtils.shortToByteArray((short) port));
         buffer.put(address);
 
         return buffer.array();

@@ -5,7 +5,6 @@ import com.gastonlagaf.stun.model.MessageHeader;
 import com.gastonlagaf.stun.model.Protocol;
 import com.gastonlagaf.stun.model.RequestedTransportAttribute;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.stream.IntStream;
 
@@ -30,10 +29,10 @@ public class RequestedTransportAttributeCodec extends BaseMessageAttributeCodec<
 
     @Override
     protected byte[] encodeValue(MessageHeader messageHeader, RequestedTransportAttribute messageAttribute) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos.write(messageAttribute.getValue().getCode().byteValue());
-        IntStream.range(0, RFFU_OFFSET).forEach(it -> baos.write(PADDING));
-        return baos.toByteArray();
+        ByteBuffer buffer = ByteBuffer.allocate(VALUE_LENGTH);
+        buffer.put(messageAttribute.getValue().getCode().byteValue());
+        IntStream.range(0, RFFU_OFFSET).forEach(it -> buffer.put(PADDING));
+        return buffer.array();
     }
 
 }

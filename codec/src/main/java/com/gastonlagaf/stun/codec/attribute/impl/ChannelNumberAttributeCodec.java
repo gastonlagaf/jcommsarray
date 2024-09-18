@@ -29,9 +29,8 @@ public class ChannelNumberAttributeCodec extends BaseMessageAttributeCodec<Chann
     @Override
     protected byte[] encodeValue(MessageHeader messageHeader, ChannelNumberAttribute messageAttribute) {
         ByteBuffer result = ByteBuffer.allocate(VALUE_LENGTH);
-        CodecUtils.writeShort(result, messageAttribute.getValue());
+        result.put(CodecUtils.shortToByteArray(messageAttribute.getValue().shortValue()));
         IntStream.range(0, RFFU_OFFSET).forEach(it -> result.put(PADDING));
-
         return result.array();
     }
 
