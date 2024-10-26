@@ -1,4 +1,4 @@
-group = rootProject.group + ".integrity"
+group = rootProject.group + ".stun.integrity"
 
 dependencies {
     implementation project(":model")

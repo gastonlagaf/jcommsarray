@@ -6,10 +6,10 @@ import com.gastonlagaf.stun.model.AddressAttribute;
 import com.gastonlagaf.stun.model.IpFamily;
 import com.gastonlagaf.stun.model.KnownAttributeName;
 import com.gastonlagaf.stun.model.MessageHeader;
-import lombok.SneakyThrows;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 public class MappedAddressAttributeCodec extends BaseMessageAttributeCodec<AddressAttribute> {
@@ -43,7 +43,6 @@ public class MappedAddressAttributeCodec extends BaseMessageAttributeCodec<Addre
     }
 
     @Override
-    @SneakyThrows
     protected AddressAttribute decodeValue(MessageHeader messageHeader, ByteBuffer byteBuffer, Integer type, Integer length) {
         Boolean xored = KnownAttributeName.XOR_MAPPED_ADDRESS.getCode().equals(type);
 
@@ -59,7 +58,12 @@ public class MappedAddressAttributeCodec extends BaseMessageAttributeCodec<Addre
         for (int i = 0; i < ipFamily.getAddressLength(); i++) {
             address[i] = (byte) (address[i] ^ addressXorMask[i]);
         }
-        String addressStr = InetAddress.getByAddress(address).getHostAddress();
+        String addressStr;
+        try {
+            addressStr = InetAddress.getByAddress(address).getHostAddress();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
 
         return new AddressAttribute(type, length, xored, ipFamily, port, addressStr);
     }

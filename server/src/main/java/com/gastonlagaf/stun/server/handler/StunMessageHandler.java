@@ -1,13 +1,15 @@
 package com.gastonlagaf.stun.server.handler;
 
-import com.gastonlagaf.stun.server.model.ServerType;
-import com.gastonlagaf.stun.server.model.StunRequest;
+import com.gastonlagaf.stun.model.MessageType;
+import com.gastonlagaf.stun.server.model.ContexedMessage;
 import com.gastonlagaf.stun.server.model.StunResponse;
 
-import java.nio.channels.DatagramChannel;
+import java.net.InetSocketAddress;
 
 public interface StunMessageHandler {
 
-    StunResponse handle(ServerType serverType, DatagramChannel channel, StunRequest stunRequest);
+    MessageType getMessageType();
+
+    StunResponse handle(InetSocketAddress serverAddress, InetSocketAddress clientAddress, ContexedMessage message);
 
 }

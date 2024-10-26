@@ -1,64 +1,100 @@
 package com.gastonlagaf.stun.client.impl;
 
+import com.gastonlagaf.handler.MessageHandler;
 import com.gastonlagaf.stun.client.StunClient;
 import com.gastonlagaf.stun.client.model.StunClientProperties;
-import com.gastonlagaf.stun.codec.MessageCodec;
-import com.gastonlagaf.stun.codec.impl.DefaultMessageCodec;
+import com.gastonlagaf.stun.codec.impl.MessageCodec;
 import com.gastonlagaf.stun.exception.StunProtocolException;
 import com.gastonlagaf.stun.model.*;
-import lombok.SneakyThrows;
+import com.gastonlagaf.udp.UdpSockets;
+import com.gastonlagaf.turn.client.TurnClient;
+import com.gastonlagaf.turn.client.impl.UdpTurnClient;
+import com.gastonlagaf.udp.BaseUdpClient;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.DatagramPacket;
+import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class UdpStunClient implements StunClient {
-
-    private static final Integer PACKET_LENGTH = 576;
+public class UdpStunClient extends BaseUdpClient<Message> implements StunClient {
 
     private final StunClientProperties properties;
 
-    private final DatagramChannel channel;
+    private final MessageHandler messageHandler;
 
     private final InetSocketAddress address;
 
-    private final MessageCodec messageCodec = new DefaultMessageCodec();
+    private final InetSocketAddress defaultTargetAddress;
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
-    @SneakyThrows
     public UdpStunClient(StunClientProperties properties) {
+        this(
+                properties,
+                new MessageHandler(properties.getSocketTimeout().longValue(), null)
+        );
+    }
+
+    public UdpStunClient(StunClientProperties properties, MessageHandler messageHandler) {
+        super(
+                new UdpSockets<>(messageHandler, 1),
+                new MessageCodec()
+        );
         this.properties = properties;
+        this.messageHandler = messageHandler;
 
-        this.channel = DatagramChannel.open();
+        DatagramSocket socket = ((DatagramChannel) udpSockets.getRegistry()
+                .register(properties.getInterfaceIp(), properties.getClientPort())
+                .channel())
+                .socket();
+        this.address = (InetSocketAddress) socket.getLocalSocketAddress();
 
-        this.address = new InetSocketAddress(properties.getInterfaceIp(), properties.getClientPort());
-        channel.socket().bind(this.address);
-        channel.socket().setSoTimeout((int) TimeUnit.SECONDS.toMillis(properties.getSocketTimeout()));
+        this.defaultTargetAddress = new InetSocketAddress(properties.getServerHost(), properties.getServerPort());
 
-        log.info("Udp socket started at port {}", this.address.getPort());
+        udpSockets.start();
     }
 
     @Override
-    public Message get() {
-        return get(null, Map.of());
+    public CompletableFuture<Message> registerAwait(Message message) {
+        return messageHandler.awaitResult(message.getHeader().getTransactionId());
+    }
+
+    @Override
+    public TurnClient initializeTurnSession() {
+        int sourcePort = new Random().nextInt(45000, 65000);
+        InetSocketAddress sourceAddress = new InetSocketAddress(this.address.getHostName(), sourcePort);
+        DatagramChannel channel = (DatagramChannel) udpSockets.getRegistry()
+                .register(sourceAddress.getHostName(), sourceAddress.getPort())
+                .channel();
+
+        Message message = doInitTurnSession(sourceAddress);
+
+        InetSocketAddress targetAddress = message.getAttributes()
+                .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
+                .toInetSocketAddress();
+        
+        return new UdpTurnClient(sourceAddress, targetAddress, udpSockets, communicationCodec, channel, messageHandler);
+    }
+
+    @Override
+    public InetSocketAddress getReflexiveAddress() {
+        Message message = get(null, Map.of());
+        AddressAttribute addressAttribute = message.getAttributes().get(KnownAttributeName.XOR_MAPPED_ADDRESS);
+        if (null == addressAttribute) {
+            throw new StunProtocolException("Mapped address not found in response", ErrorCode.BAD_REQUEST.getCode());
+        }
+        return new InetSocketAddress(addressAttribute.getAddress(), addressAttribute.getPort());
     }
 
     @Override
     public NatBehaviour checkMappingBehaviour() {
         AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, address);
 
-        Message test1 = get();
+        Message test1 = get(null, Map.of());
         AddressAttribute addressAttribute1 = getMappedAddress(test1);
         if (addressAttribute1.equals(baseAddressAttribute)) {
             return NatBehaviour.NO_NAT;
@@ -82,7 +118,7 @@ public class UdpStunClient implements StunClient {
     public NatBehaviour checkFilteringBehaviour() {
         AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, address);
 
-        Message test1 = get();
+        Message test1 = get(null, Map.of());
         AddressAttribute addressAttribute1 = getMappedAddress(test1);
         if (addressAttribute1.equals(baseAddressAttribute)) {
             return NatBehaviour.NO_NAT;
@@ -105,7 +141,7 @@ public class UdpStunClient implements StunClient {
         if (null == message) {
             throw new IllegalStateException("Message cannot be null");
         }
-        MessageAttribute messageAttribute = message.getAttributes().get(KnownAttributeName.XOR_MAPPED_ADDRESS.getCode());
+        MessageAttribute messageAttribute = message.getAttributes().get(KnownAttributeName.XOR_MAPPED_ADDRESS);
         if (!(messageAttribute instanceof AddressAttribute addressAttribute)) {
             throw new IllegalArgumentException("Mapped address is not present in response");
         }
@@ -113,54 +149,47 @@ public class UdpStunClient implements StunClient {
     }
 
     @Override
-    @SneakyThrows
-    public void close() {
-        executorService.shutdown();
-        channel.close();
-    }
-
-    @SneakyThrows
-    private Message get(InetSocketAddress address, Map<Integer, MessageAttribute> attributes) {
-        Message message = new Message(attributes);
-
-        ByteBuffer buffer = messageCodec.encode(message);
-        buffer.flip();
-
-        SocketAddress socketAddress = Optional.ofNullable(address)
-                .orElseGet(() -> new InetSocketAddress(properties.getServerHost(), properties.getServerPort()));
-        channel.send(buffer, socketAddress);
-        return awaitResponse();
-    }
-
-    @SneakyThrows
-    private Message awaitResponse() {
-        byte[] packetPayload = new byte[PACKET_LENGTH];
-        DatagramPacket packet = new DatagramPacket(packetPayload, packetPayload.length);
-        try {
-            channel.socket().receive(packet);
-        } catch (SocketTimeoutException e) {
-            return null;
-        }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(packet.getData());
-        Message result = messageCodec.decode(byteBuffer);
-
-        ErrorCodeAttribute errorAttribute = (ErrorCodeAttribute) result.getAttributes().get(KnownAttributeName.ERROR_CODE.getCode());
+    public Message sendAndReceive(InetSocketAddress source, InetSocketAddress target, Message message) {
+        Message response = super.sendAndReceive(source, target, message);
+        ErrorCodeAttribute errorAttribute = response.getAttributes().get(KnownAttributeName.ERROR_CODE);
         if (null != errorAttribute) {
             throw new StunProtocolException(errorAttribute.getReasonPhrase(), errorAttribute.getCode());
         }
+        return response;
+    }
 
-        return result;
+    @Override
+    public void close() {
+        try {
+            udpSockets.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Message get(InetSocketAddress address, Map<Integer, MessageAttribute> attributes) {
+        Message message = new Message(attributes);
+
+        InetSocketAddress targetAddress = Optional.ofNullable(address).orElse(this.defaultTargetAddress);
+
+        return sendAndReceive(this.address, targetAddress, message);
+    }
+
+    private Message doInitTurnSession(InetSocketAddress sourceAddress) {
+        MessageHeader messageHeader = new MessageHeader(MessageType.ALLOCATE);
+        Map<Integer, MessageAttribute> attributes = Map.of(
+                KnownAttributeName.REQUESTED_TRANSPORT.getCode(), new RequestedTransportAttribute(Protocol.UDP)
+        );
+        Message message = new Message(messageHeader, attributes);
+        return sendAndReceive(sourceAddress, this.defaultTargetAddress, message);
     }
 
     private InetSocketAddress getSecondaryServerAddress(Message message) {
-        AddressAttribute otherAddress = (AddressAttribute) Optional.ofNullable(message)
-                .flatMap(it -> Optional.ofNullable(it.getAttributes().get(KnownAttributeName.OTHER_ADDRESS.getCode())))
+        AddressAttribute otherAddress = Optional.ofNullable(message)
+                .flatMap(it -> Optional.ofNullable(it.getAttributes().<AddressAttribute>get(KnownAttributeName.OTHER_ADDRESS)))
                 .orElse(null);
         if (null == otherAddress) {
-            if (null == properties.getSecondaryServerHost()) {
-                throw new IllegalStateException("Secondary server host not exists");
-            }
-            return new InetSocketAddress(properties.getSecondaryServerHost(), properties.getSecondaryServerPort());
+            throw new IllegalStateException("Secondary server host not exists");
         }
         return new InetSocketAddress(otherAddress.getAddress(), otherAddress.getPort());
     }

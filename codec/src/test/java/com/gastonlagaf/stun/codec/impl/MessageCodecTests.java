@@ -1,6 +1,6 @@
 package com.gastonlagaf.stun.codec.impl;
 
-import com.gastonlagaf.stun.codec.MessageCodec;
+import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.stun.codec.attribute.impl.MessageIntegrityAttributeCodec;
 import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.model.*;
@@ -9,34 +9,26 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
 
-public class DefaultMessageCodecTests {
+public class MessageCodecTests {
 
     @Test
     void test() {
         UserDetails userDetails = new UserDetails("\u30DE\u30C8\u30EA\u30C3\u30AF\u30B9", "TheMatrIX", "example.org");
-        MessageCodec messageCodec = new DefaultMessageCodec(userDetails, PasswordAlgorithm.SHA256);
+        CommunicationCodec<Message> messageCodec = new MessageCodec(userDetails, PasswordAlgorithm.SHA256);
 
         MessageHeader header = new MessageHeader(MessageType.BINDING_REQUEST);
         Map<Integer, MessageAttribute> map = getIntegerMessageAttributeMap();
 
         Message message = new Message(header, map);
 
-        Instant start = Instant.now();
         ByteBuffer buffer = messageCodec.encode(message);
-        Instant end = Instant.now();
-        System.out.println(Duration.between(start, end).toMillis());
 
-        start = Instant.now();
         Message newMessage = messageCodec.decode(buffer);
-        end = Instant.now();
-        System.out.println(Duration.between(start, end).toMillis());
 
         Assertions.assertEquals(
                 new String(message.getHeader().getTransactionId()),
@@ -55,7 +47,7 @@ public class DefaultMessageCodecTests {
     @Test
     void testVector() {
         UserDetails userDetails = new UserDetails("\u30DE\u30C8\u30EA\u30C3\u30AF\u30B9", "TheMatrIX", "example.org");
-        MessageCodec messageCodec = new DefaultMessageCodec(userDetails, PasswordAlgorithm.MD5);
+        CommunicationCodec<Message> messageCodec = new MessageCodec(userDetails, PasswordAlgorithm.MD5);
 
         byte[] message = HexFormat.of().parseHex(
                 "000100902112a44278ad3433c6ad72c029da412e001e00204a3cf38fef6992bda952c6780417da0f24819415569e60b" +
@@ -66,7 +58,7 @@ public class DefaultMessageCodecTests {
 
         Message decodedMessage = messageCodec.decode(ByteBuffer.wrap(message));
 
-        MessageIntegrityAttribute decodedAttribute = (MessageIntegrityAttribute) decodedMessage.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode());
+        MessageIntegrityAttribute decodedAttribute = decodedMessage.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256);
         MessageIntegrityAttribute attribute = new MessageIntegrityAttribute(
                 KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode(), decodedAttribute.getPrecedingBytes(),
                 userDetails.getUsername(), userDetails.getRealm(), userDetails.getPassword(), PasswordAlgorithm.SHA256
@@ -79,11 +71,11 @@ public class DefaultMessageCodecTests {
         Assertions.assertArrayEquals(decodedAttribute.getValue(), encodedPrecededBytes);
 
         Assertions.assertEquals(
-                new String(((DefaultMessageAttribute) decodedMessage.getAttributes().get(20)).getValue()),
+                new String(decodedMessage.getAttributes().<DefaultMessageAttribute>get(KnownAttributeName.REALM).getValue()),
                 "example.org"
         );
         Assertions.assertEquals(
-                new String(((DefaultMessageAttribute) decodedMessage.getAttributes().get(21)).getValue()),
+                new String((decodedMessage.getAttributes().<DefaultMessageAttribute>get(21)).getValue()),
                 "obMatJos2AAACf//499k954d6OL34oL9FSTvy64sA");
     }
 

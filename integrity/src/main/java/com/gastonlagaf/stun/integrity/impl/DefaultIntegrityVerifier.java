@@ -8,7 +8,6 @@ import com.gastonlagaf.stun.model.*;
 import com.gastonlagaf.stun.user.UserProvider;
 import com.gastonlagaf.stun.user.model.UserDetails;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -21,7 +20,6 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
     private final UserProvider userProvider;
 
     @Override
-    @SneakyThrows
     public void check(Message message) {
         IntegrityVerificationDetails details = extractDetails(message);
 
@@ -40,12 +38,12 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
     }
 
     private IntegrityVerificationDetails extractDetails(Message message) {
-        MessageIntegrityAttribute targetAttribute = (MessageIntegrityAttribute) message.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode());
+        MessageIntegrityAttribute targetAttribute = message.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256);
         if (null == targetAttribute) {
             throw new StunProtocolException("No auth details provided", ErrorCode.UNAUTHENTICATED.getCode());
         }
 
-        DefaultMessageAttribute usernameAttribute = (DefaultMessageAttribute) message.getAttributes().get(KnownAttributeName.USERNAME.getCode());
+        DefaultMessageAttribute usernameAttribute = message.getAttributes().get(KnownAttributeName.USERNAME);
         if (null == usernameAttribute) {
             throw new StunProtocolException("Username not provided", ErrorCode.UNAUTHENTICATED.getCode());
         }
@@ -53,7 +51,7 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
         UserDetails userDetails = userProvider.find(realm, username)
                 .orElseThrow(() -> new StunProtocolException("User not found", ErrorCode.UNAUTHENTICATED.getCode()));
 
-        PasswordAlgorithmAttribute passwordAlgorithmAttribute = (PasswordAlgorithmAttribute) message.getAttributes().get(KnownAttributeName.PASSWORD_ALGORITHM.getCode());
+        PasswordAlgorithmAttribute passwordAlgorithmAttribute = message.getAttributes().get(KnownAttributeName.PASSWORD_ALGORITHM);
         PasswordAlgorithm passwordAlgorithm = Optional.ofNullable(passwordAlgorithmAttribute)
                 .map(PasswordAlgorithmAttribute::getValue)
                 .orElse(PasswordAlgorithm.MD5);

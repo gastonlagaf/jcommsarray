@@ -1,7 +1,9 @@
-group = rootProject.group + ".client"
+group = rootProject.group + ".stun.client"
 
 dependencies {
     implementation project(":codec")
+    implementation project(":client-base")
 
+    implementation "com.github.ben-manes.caffeine:caffeine:${caffeine_version}"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
 }

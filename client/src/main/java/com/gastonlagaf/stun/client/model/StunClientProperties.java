@@ -15,10 +15,6 @@ public class StunClientProperties {
 
     private final Integer serverPort;
 
-    private final String secondaryServerHost;
-
-    private final Integer secondaryServerPort;
-
     private final Integer socketTimeout;
 
 }

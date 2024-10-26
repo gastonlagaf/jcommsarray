@@ -1,0 +1,10 @@
+apply plugin: "java-library"
+
+apply from: "../builds/publishing.gradle"
+
+group = rootProject.group + ".udp"
+
+dependencies {
+    api project(":udp-socket")
+    api project(":codec-api")
+}

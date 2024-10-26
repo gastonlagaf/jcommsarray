@@ -1,1 +1,1 @@
-group = rootProject.group + ".model"
+group = rootProject.group + ".stun.model"

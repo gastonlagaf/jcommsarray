@@ -4,11 +4,12 @@ import com.gastonlagaf.stun.model.MessageHeader;
 import com.gastonlagaf.stun.model.PasswordAlgorithm;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class IntegrityUtils {
@@ -36,22 +37,29 @@ public class IntegrityUtils {
         System.arraycopy(lengthBytes, START_POSITION, bytes, 2, lengthBytes.length);
     }
 
-    @SneakyThrows
     public static byte[] constructKey(PasswordAlgorithm passwordAlgorithm, String username, String realm, String password) {
         String rawKey = String.format(RAW_KEY_FORMAT, username, realm, password);
-        MessageDigest digest = MessageDigest.getInstance(passwordAlgorithm.getDigestName());
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance(passwordAlgorithm.getDigestName());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         return digest.digest(rawKey.getBytes());
     }
 
-    @SneakyThrows
     public static byte[] constructHash(byte[] precedingBytes, byte[] key, boolean isSha256) {
         int hashLength = isSha256 ? HMAC_SHA256_LENGTH : HMAC_SHA1_LENGTH;
         int newLength = precedingBytes.length + hashLength + TYPE_AND_LENGTH_OFFSET - MessageHeader.LENGTH;
         IntegrityUtils.setLength(precedingBytes, newLength);
         String macAlgoName = isSha256 ? HMAC_SHA256 : HMAC_SHA1;
-        Mac mac = Mac.getInstance(macAlgoName);
-        mac.init(new SecretKeySpec(key, macAlgoName));
-        return mac.doFinal(precedingBytes);
+        try {
+            Mac mac = Mac.getInstance(macAlgoName);
+            mac.init(new SecretKeySpec(key, macAlgoName));
+            return mac.doFinal(precedingBytes);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

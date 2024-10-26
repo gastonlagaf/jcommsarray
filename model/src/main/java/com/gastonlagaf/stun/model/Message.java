@@ -1,5 +1,6 @@
 package com.gastonlagaf.stun.model;
 
+import com.gastonlagaf.stun.exception.StunProtocolException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,19 +13,27 @@ public class Message {
 
     private final MessageHeader header;
 
-    private final Map<Integer, MessageAttribute> attributes;
+    private final MessageAttributes attributes;
 
-    public Message() {
+    public Message(MessageType type, byte[] txId, StunProtocolException ex) {
         this(
-                new MessageHeader(MessageType.BINDING_REQUEST),
-                Map.of()
+                new MessageHeader(type.getCode(), 0, txId),
+                Map.of(
+                        KnownAttributeName.ERROR_CODE.getCode(), new ErrorCodeAttribute(ex)
+                )
         );
     }
 
     public Message(Map<Integer, MessageAttribute> attributes) {
+        this(new MessageHeader(MessageType.BINDING_REQUEST), attributes);
+    }
+
+    public Message(MessageHeader header, Map<Integer, MessageAttribute> attributes) {
         this(
-                new MessageHeader(MessageType.BINDING_REQUEST),
-                Optional.ofNullable(attributes).orElse(Map.of())
+                header,
+                Optional.ofNullable(attributes)
+                        .map(MessageAttributes::singleOnly)
+                        .orElse(MessageAttributes.EMPTY)
         );
     }
 

@@ -1,6 +1,6 @@
 package com.gastonlagaf.stun.codec.impl;
 
-import com.gastonlagaf.stun.codec.MessageCodec;
+import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodecContainer;
 import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DefaultMessageCodec implements MessageCodec {
+public class MessageCodec implements CommunicationCodec<Message> {
 
     private final MessageAttributeCodecContainer codecContainer;
 
@@ -21,11 +21,11 @@ public class DefaultMessageCodec implements MessageCodec {
 
     private final PasswordAlgorithm passwordAlgorithm;
 
-    public DefaultMessageCodec() {
+    public MessageCodec() {
         this(null, PasswordAlgorithm.MD5);
     }
 
-    public DefaultMessageCodec(UserDetails userDetails, PasswordAlgorithm passwordAlgorithm) {
+    public MessageCodec(UserDetails userDetails, PasswordAlgorithm passwordAlgorithm) {
         this.userDetails = userDetails;
         this.passwordAlgorithm = passwordAlgorithm;
         this.codecContainer = new MessageAttributeCodecContainer();
@@ -33,9 +33,13 @@ public class DefaultMessageCodec implements MessageCodec {
 
     @Override
     public ByteBuffer encode(Message message) {
+        if (MessageType.INBOUND_CHANNEL_DATA.equals(message.getHeader().getType())) {
+            return encodeChannelData(message);
+        }
+
         if (!PasswordAlgorithm.MD5.equals(passwordAlgorithm)) {
             MessageAttribute passwordAlgorithmAttribute = new PasswordAlgorithmAttribute(passwordAlgorithm);
-            message.getAttributes().put(passwordAlgorithmAttribute.getType(), passwordAlgorithmAttribute);
+            message.getAttributes().put(passwordAlgorithmAttribute);
         }
 
         NonResizableBuffer buffer = new NonResizableBuffer();
@@ -55,15 +59,20 @@ public class DefaultMessageCodec implements MessageCodec {
 
     @Override
     public Message decode(ByteBuffer buffer) {
-        MessageHeader header = decodeHeader(buffer);
+        Integer typeCode = CodecUtils.readShort(buffer);
+        if (ChannelNumberAttribute.MIN_CHANNEL_NUMBER <= typeCode && typeCode <= ChannelNumberAttribute.MAX_CHANNEL_NUMBER) {
+            return decodeChannelData(typeCode, buffer);
+        }
 
-        Map<Integer, MessageAttribute> attributes = new HashMap<>();
+        MessageHeader header = decodeHeader(typeCode, buffer);
+
+        MessageAttributes attributes = new MessageAttributes(new HashMap<>());
         while (buffer.position() - MessageHeader.LENGTH < header.getLength()) {
             Integer type = CodecUtils.readShort(buffer);
 
             MessageAttribute messageAttribute = codecContainer.get(type).decode(header, type, buffer);
 
-            attributes.put(type, messageAttribute);
+            attributes.put(messageAttribute);
         }
 
         return new Message(header, attributes);
@@ -76,8 +85,7 @@ public class DefaultMessageCodec implements MessageCodec {
         dest.write(header.getTransactionId());
     }
 
-    private MessageHeader decodeHeader(ByteBuffer byteBuffer) {
-        Integer typeCode = CodecUtils.readShort(byteBuffer);
+    private MessageHeader decodeHeader(Integer typeCode, ByteBuffer byteBuffer) {
         Integer length = CodecUtils.readShort(byteBuffer);
 
         Integer magicCookie = byteBuffer.getInt();
@@ -101,6 +109,34 @@ public class DefaultMessageCodec implements MessageCodec {
                 userDetails.getUsername(), userDetails.getRealm(), userDetails.getPassword(), passwordAlgorithm
         );
         codecContainer.get(messageIntegrityAttribute.getType()).encode(messageHeader, messageIntegrityAttribute, buffer);
+    }
+
+    private Message decodeChannelData(Integer number, ByteBuffer byteBuffer) {
+        int length = CodecUtils.readShort(byteBuffer);
+
+        byte[] data = new byte[length];
+        byteBuffer.get(data);
+
+        MessageHeader messageHeader = new MessageHeader(MessageType.OUTBOUND_CHANNEL_DATA);
+        Map<Integer, MessageAttribute> attributes = Map.of(
+                KnownAttributeName.CHANNEL_NUMBER.getCode(), new ChannelNumberAttribute(KnownAttributeName.CHANNEL_NUMBER.getCode(), Short.BYTES, number),
+                KnownAttributeName.DATA.getCode(), new DefaultMessageAttribute(KnownAttributeName.DATA.getCode(), length, data)
+        );
+        return new Message(messageHeader, attributes);
+    }
+
+    private ByteBuffer encodeChannelData(Message message) {
+        Integer channelNumber = message.getAttributes().<ChannelNumberAttribute>get(KnownAttributeName.CHANNEL_NUMBER).getValue();
+        byte[] data = message.getAttributes().<DefaultMessageAttribute>get(KnownAttributeName.DATA).getValue();
+
+        ByteBuffer result = ByteBuffer.allocate(Short.BYTES + Short.BYTES + data.length);
+        result.put(CodecUtils.shortToByteArray(channelNumber.shortValue()));
+        result.put(CodecUtils.shortToByteArray((short) data.length));
+        result.put(data);
+
+        result.flip();
+
+        return result;
     }
 
 }

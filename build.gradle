@@ -1,4 +1,4 @@
-group = 'com.gastonlagaf.stun'
+group = 'com.gastonlagaf'
 version = '1.0-SNAPSHOT'
 
 subprojects {
@@ -14,7 +14,7 @@ subprojects {
     }
 
     dependencies {
-        implementation "org.projectlombok:lombok:${lombok_version}"
+        compileOnly "org.projectlombok:lombok:${lombok_version}"
 
         annotationProcessor "org.projectlombok:lombok:${lombok_version}"
 

@@ -1,0 +1,11 @@
+apply plugin: "maven-publish"
+
+publishing {
+    publications {
+        create("maven", MavenPublication.class) {
+            version = rootProject.version
+
+            from(components["java"])
+        }
+    }
+}

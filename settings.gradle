@@ -1,6 +1,9 @@
 include 'client'
 include 'server'
+include 'codec-api'
 include 'codec'
 include 'model'
 include 'integrity'
+include 'udp-socket'
+include 'client-base'
 

@@ -2,9 +2,10 @@ plugins {
     id 'java-library'
 }
 
-group = rootProject.group + ".model"
+group = rootProject.group + ".stun.codec"
 
 dependencies {
+    api project(":codec-api")
     api project(":model")
     api project(":integrity")
 }

@@ -1,12 +1,8 @@
 package com.gastonlagaf.stun.model;
 
 import lombok.Getter;
-import lombok.SneakyThrows;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.*;
 
 @Getter
 public class AddressAttribute extends MessageAttribute {
@@ -38,9 +34,16 @@ public class AddressAttribute extends MessageAttribute {
         this.address = inetSocketAddress.getAddress().getHostAddress();
     }
 
-    @SneakyThrows
     public InetAddress toInetAddress() {
-        return InetAddress.getByName(address);
+        try {
+            return InetAddress.getByName(address);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public InetSocketAddress toInetSocketAddress() {
+        return new InetSocketAddress(address, port);
     }
 
     @Override
