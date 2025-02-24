@@ -1,18 +1,20 @@
 package com.gastonlagaf.turn.client.impl;
 
-import com.gastonlagaf.handler.MessageHandler;
-import com.gastonlagaf.udp.codec.CommunicationCodec;
+import com.gastonlagaf.stun.client.model.StunClientProperties;
 import com.gastonlagaf.stun.exception.StunProtocolException;
 import com.gastonlagaf.stun.model.*;
-import com.gastonlagaf.udp.UdpSockets;
+import com.gastonlagaf.turn.TurnClientProtocol;
 import com.gastonlagaf.turn.client.TurnClient;
-import com.gastonlagaf.udp.BaseUdpClient;
+import com.gastonlagaf.udp.client.BaseUdpClient;
+import com.gastonlagaf.udp.socket.UdpSockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient {
 
@@ -26,36 +28,31 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
 
     private static final Long REFRESH_RATE_MINUTES = DEFAULT_LIFETIME_MINUTES - 1L;
 
-    private final InetSocketAddress sourceAddress;
-
     private final InetSocketAddress targetAddress;
 
-    private final MessageHandler messageHandler;
-
-    private final Map<Integer, InetSocketAddress> channelBindings = new HashMap<>();
+    private final Map<Integer, InetSocketAddress> channelBindings;
 
     private final Set<InetSocketAddress> bindings = new HashSet<>();
 
     private final ScheduledFuture<?> refreshSchedule;
 
-    private final DatagramChannel channel;
+    public UdpTurnClient(StunClientProperties properties, UdpSockets<Message> udpSockets, TurnClientProtocol<?> protocol, Map<Integer, InetSocketAddress> channelBindings) {
+        super(udpSockets, protocol);
 
-    public UdpTurnClient(InetSocketAddress sourceAddress, InetSocketAddress targetAddress, UdpSockets<Message> udpSockets, CommunicationCodec<Message> communicationCodec, DatagramChannel channel, MessageHandler messageHandler) {
-        super(udpSockets, communicationCodec);
-        this.sourceAddress = sourceAddress;
-        this.targetAddress = targetAddress;
-        this.messageHandler = messageHandler;
-        this.channel = channel;
+        this.channelBindings = channelBindings;
+
+        try {
+            InetSocketAddress stunAddress = new InetSocketAddress(properties.getServerHost(), properties.getServerPort());
+            this.targetAddress = doInit(stunAddress);
+        } catch (StunProtocolException e) {
+            close();
+            throw e;
+        }
 
         this.refreshSchedule = executor.scheduleAtFixedRate(
                 () -> refresh(DEFAULT_LIFETIME_MINUTES),
                 REFRESH_RATE_MINUTES, REFRESH_RATE_MINUTES, TimeUnit.MINUTES
         );
-    }
-
-    @Override
-    public CompletableFuture<Message> registerAwait(Message message) {
-        return messageHandler.awaitResult(message.getHeader().getTransactionId());
     }
 
     @Override
@@ -103,6 +100,11 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
     }
 
     @Override
+    public InetSocketAddress resolveChannel(Integer number) {
+        return channelBindings.get(number);
+    }
+
+    @Override
     public void send(Integer channelNumber, byte[] data) {
         if (!channelBindings.containsKey(channelNumber)) {
             throw new StunProtocolException("Binding not registered for channel " + channelNumber, ErrorCode.BAD_REQUEST.getCode());
@@ -114,7 +116,7 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
         );
 
         Message message = new Message(messageHeader, attributes);
-        send(this.sourceAddress, this.targetAddress, message);
+        send(this.targetAddress, message);
     }
 
     @Override
@@ -137,7 +139,7 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
         refresh(LifetimeAttribute.DELETE_ALLOCATION_LIFETIME_MARK);
         refreshSchedule.cancel(true);
         try {
-            channel.close();
+            super.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -154,11 +156,23 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
     }
 
     private void sendAndReceive(Message message) {
-        Message response = sendAndReceive(this.sourceAddress, this.targetAddress, message);
+        Message response = sendAndReceive(this.targetAddress, message).join();
         ErrorCodeAttribute errorAttribute = response.getAttributes().get(KnownAttributeName.ERROR_CODE);
         if (null != errorAttribute) {
             throw new StunProtocolException(errorAttribute.getReasonPhrase(), errorAttribute.getCode());
         }
+    }
+
+    private InetSocketAddress doInit(InetSocketAddress stunAddress) {
+        MessageHeader messageHeader = new MessageHeader(MessageType.ALLOCATE);
+        Map<Integer, MessageAttribute> attributes = Map.of(
+                KnownAttributeName.REQUESTED_TRANSPORT.getCode(), new RequestedTransportAttribute(com.gastonlagaf.stun.model.Protocol.UDP)
+        );
+        Message message = new Message(messageHeader, attributes);
+        Message response = sendAndReceive(stunAddress, message).join();
+        return response.getAttributes()
+                .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
+                .toInetSocketAddress();
     }
 
 }

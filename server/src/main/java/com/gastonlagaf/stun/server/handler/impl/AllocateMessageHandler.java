@@ -8,7 +8,7 @@ import com.gastonlagaf.stun.server.model.ContexedMessage;
 import com.gastonlagaf.stun.server.model.StunResponse;
 import com.gastonlagaf.stun.server.turn.TurnSession;
 import com.gastonlagaf.stun.server.turn.TurnSessions;
-import com.gastonlagaf.udp.ChannelRegistry;
+import com.gastonlagaf.udp.socket.ChannelRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

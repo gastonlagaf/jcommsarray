@@ -1,10 +1,10 @@
 package com.gastonlagaf.stun.codec.impl;
 
-import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.stun.codec.attribute.impl.MessageIntegrityAttributeCodec;
 import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
 import com.gastonlagaf.stun.model.*;
 import com.gastonlagaf.stun.user.model.UserDetails;
+import com.gastonlagaf.udp.codec.CommunicationCodec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

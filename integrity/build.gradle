@@ -1,5 +1,5 @@
-group = rootProject.group + ".stun.integrity"
+group = rootProject.group + ".stun"
 
 dependencies {
-    implementation project(":model")
+    api project(":model")
 }

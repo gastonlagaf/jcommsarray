@@ -1,6 +1,5 @@
 package com.gastonlagaf.stun.codec.impl;
 
-import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodec;
 import com.gastonlagaf.stun.codec.attribute.MessageAttributeCodecContainer;
 import com.gastonlagaf.stun.codec.buffer.NonResizableBuffer;
@@ -8,6 +7,7 @@ import com.gastonlagaf.stun.codec.util.CodecUtils;
 import com.gastonlagaf.stun.integrity.utils.IntegrityUtils;
 import com.gastonlagaf.stun.model.*;
 import com.gastonlagaf.stun.user.model.UserDetails;
+import com.gastonlagaf.udp.codec.CommunicationCodec;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

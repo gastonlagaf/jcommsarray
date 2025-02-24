@@ -15,6 +15,8 @@ public interface TurnClient extends UdpClient<Message>, Closeable {
 
     Integer createChannel(Integer number, InetSocketAddress target);
 
+    InetSocketAddress resolveChannel(Integer number);
+
     void send(Integer channelNumber, byte[] data);
 
     void send(InetSocketAddress receiver, byte[] data);

@@ -1,8 +1,4 @@
-plugins {
-    id 'java-library'
-}
-
-group = rootProject.group + ".stun.codec"
+group = rootProject.group + ".stun"
 
 dependencies {
     api project(":codec-api")

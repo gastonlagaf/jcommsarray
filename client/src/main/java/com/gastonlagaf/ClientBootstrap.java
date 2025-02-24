@@ -1,14 +1,15 @@
 package com.gastonlagaf;
 
-import com.gastonlagaf.handler.MessageHandler;
-import com.gastonlagaf.pure.PurePacketHandler;
+import com.gastonlagaf.pure.PureProtocol;
 import com.gastonlagaf.stun.client.StunClient;
 import com.gastonlagaf.stun.client.impl.UdpStunClient;
 import com.gastonlagaf.stun.client.model.StunClientProperties;
 import com.gastonlagaf.stun.model.DefaultMessageAttribute;
 import com.gastonlagaf.stun.model.KnownAttributeName;
-import com.gastonlagaf.udp.UdpSockets;
 import com.gastonlagaf.turn.client.TurnClient;
+import com.gastonlagaf.udp.client.BaseUdpClient;
+import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.socket.UdpSockets;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,16 +51,14 @@ public class ClientBootstrap {
     }
 
     private static void rawCommunication(String interfaceIp, Integer port) {
-        UdpSockets<byte[]> sockets = new UdpSockets<>(new PurePacketHandler(), 1);
-        sockets.start();
-
-        sockets.getRegistry().register(interfaceIp, port);
+        PureProtocol pureProtocol = new PureProtocol(1);
+        pureProtocol.start(new InetSocketAddress(interfaceIp, port));
     }
 
     @SneakyThrows
     private static void turnCommunicate(String interfaceIp, Integer port, String serverHost, Integer serverPort, String targetHost, Integer targetPort) {
         StunClientProperties properties = new StunClientProperties(interfaceIp, port, serverHost, serverPort, 5000);
-        MessageHandler messageHandler = new MessageHandler(properties.getSocketTimeout().longValue(), ((receiverAddress, senderAddress, message) -> {
+        StunTurnClientProtocol messageHandler = new StunTurnClientProtocol(properties.getSocketTimeout().longValue(), ((receiverAddress, senderAddress, message) -> {
             DefaultMessageAttribute dataAttribute = message.getAttributes().get(KnownAttributeName.DATA);
             byte[] data = dataAttribute.getValue();
             String messageText = new String(data);
@@ -85,7 +84,7 @@ public class ClientBootstrap {
     @SneakyThrows
     private static void turnChannelCommunicate(String interfaceIp, Integer port, String serverHost, Integer serverPort, String targetHost, Integer targetPort) {
         StunClientProperties properties = new StunClientProperties(interfaceIp, port, serverHost, serverPort, 5000);
-        MessageHandler messageHandler = new MessageHandler(properties.getSocketTimeout().longValue(), ((receiverAddress, senderAddress, message) -> {
+        StunTurnClientProtocol messageHandler = new StunTurnClientProtocol(properties.getSocketTimeout().longValue(), ((receiverAddress, senderAddress, message) -> {
             DefaultMessageAttribute dataAttribute = message.getAttributes().get(KnownAttributeName.DATA);
             byte[] data = dataAttribute.getValue();
             String messageText = new String(data);
