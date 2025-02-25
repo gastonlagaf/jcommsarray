@@ -1,7 +1,0 @@
-group = rootProject.group + ".udp"
-
-dependencies {
-    api project(":udp-protocol")
-
-    api "com.github.ben-manes.caffeine:caffeine:${caffeine_version}"
-}
