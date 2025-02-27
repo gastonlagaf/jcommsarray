@@ -1,13 +1,13 @@
-package com.gastonlagaf.udp.client.stun.server;
+package com.gastonlagaf.udp.turn.server;
 
-import com.gastonlagaf.udp.client.stun.integrity.IntegrityVerifier;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.ServerDispatcher;
-import com.gastonlagaf.udp.client.stun.server.model.StunServerProperties;
-import com.gastonlagaf.udp.client.stun.server.protocol.StunTurnProtocol;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSessions;
 import com.gastonlagaf.udp.socket.UdpChannelRegistry;
 import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.turn.integrity.IntegrityVerifier;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.ServerDispatcher;
+import com.gastonlagaf.udp.turn.server.model.StunServerProperties;
+import com.gastonlagaf.udp.turn.server.protocol.StunTurnProtocol;
+import com.gastonlagaf.udp.turn.server.turn.TurnSessions;
 
 import java.io.IOException;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class StunServer {
                 serverDispatcher, turnSessionsMap, integrityVerifier, properties.getWorkersCount()
         );
 
-        this.properties.getServers().values().forEach(it -> this.udpSockets.getRegistry().register(it.getHostName(), it.getPort()));
+        this.properties.getServers().values().forEach(it -> this.udpSockets.getRegistry().register(it));
         this.udpSockets.start(stunTurnProtocol);
     }
 

@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.stun.server.model;
+package com.gastonlagaf.udp.turn.server.model;
 
-import com.gastonlagaf.udp.client.stun.model.Message;
+import com.gastonlagaf.udp.turn.model.Message;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

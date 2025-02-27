@@ -1,13 +1,13 @@
-package com.gastonlagaf.udp.client.stun.codec.impl;
+package com.gastonlagaf.udp.turn.codec.impl;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.MessageAttributeCodec;
-import com.gastonlagaf.udp.client.stun.codec.attribute.MessageAttributeCodecContainer;
-import com.gastonlagaf.udp.client.stun.codec.buffer.NonResizableBuffer;
-import com.gastonlagaf.udp.client.stun.codec.util.CodecUtils;
-import com.gastonlagaf.udp.client.stun.integrity.utils.IntegrityUtils;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.user.model.UserDetails;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
+import com.gastonlagaf.udp.turn.codec.attribute.MessageAttributeCodec;
+import com.gastonlagaf.udp.turn.codec.attribute.MessageAttributeCodecContainer;
+import com.gastonlagaf.udp.turn.codec.buffer.NonResizableBuffer;
+import com.gastonlagaf.udp.turn.codec.util.CodecUtils;
+import com.gastonlagaf.udp.turn.integrity.utils.IntegrityUtils;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.user.model.UserDetails;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

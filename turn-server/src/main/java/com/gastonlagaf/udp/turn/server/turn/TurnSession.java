@@ -1,4 +1,4 @@
-package com.gastonlagaf.udp.client.stun.server.turn;
+package com.gastonlagaf.udp.turn.server.turn;
 
 import lombok.AccessLevel;
 import lombok.Getter;

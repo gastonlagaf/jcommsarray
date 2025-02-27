@@ -1,4 +1,4 @@
-package com.gastonlagaf.udp.client.stun.util;
+package com.gastonlagaf.udp.turn.util;
 
 import java.util.Arrays;
 import java.util.Map;

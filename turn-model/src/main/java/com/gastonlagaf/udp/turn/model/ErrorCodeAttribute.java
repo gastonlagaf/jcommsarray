@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.stun.model;
+package com.gastonlagaf.udp.turn.model;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import lombok.Getter;
 
 @Getter

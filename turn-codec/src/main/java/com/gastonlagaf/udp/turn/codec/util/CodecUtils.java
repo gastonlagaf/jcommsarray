@@ -1,4 +1,4 @@
-package com.gastonlagaf.udp.client.stun.codec.util;
+package com.gastonlagaf.udp.turn.codec.util;
 
 import java.nio.ByteBuffer;
 

@@ -17,8 +17,6 @@ public class BaseUdpClient<T> implements UdpClient<T> {
 
     protected final InetSocketAddress sourceAddress;
 
-    private final SelectionKey selectionKey;
-
     public BaseUdpClient(UdpSockets<T> udpSockets) {
         this(udpSockets, null, null);
     }
@@ -27,9 +25,6 @@ public class BaseUdpClient<T> implements UdpClient<T> {
         this.udpSockets = udpSockets;
         this.clientProtocol = clientProtocol;
         this.sourceAddress = sourceAddress;
-        this.selectionKey = Optional.ofNullable(sourceAddress)
-                .map(it -> udpSockets.getRegistry().register(it))
-                .orElse(null);
     }
 
     @Override
@@ -52,6 +47,7 @@ public class BaseUdpClient<T> implements UdpClient<T> {
     public CompletableFuture<T> sendAndReceive(InetSocketAddress source, InetSocketAddress target, T message) {
         Optional.ofNullable(sourceAddress).orElseThrow(() -> new IllegalStateException("Source address not specified"));
         Optional.ofNullable(clientProtocol).orElseThrow(() -> new IllegalStateException("Protocol does not exist"));
+
         CompletableFuture<T> responseFuture = clientProtocol.awaitResult(message);
         udpSockets.send(source, target, message);
 
@@ -60,7 +56,7 @@ public class BaseUdpClient<T> implements UdpClient<T> {
 
     @Override
     public void close() throws IOException {
-        Optional.ofNullable(selectionKey).ifPresent(it -> udpSockets.getRegistry().deregister(it));
+        // No-op
     }
 
 }

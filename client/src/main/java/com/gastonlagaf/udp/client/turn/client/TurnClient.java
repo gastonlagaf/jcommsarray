@@ -1,7 +1,7 @@
-package com.gastonlagaf.turn.client;
+package com.gastonlagaf.udp.client.turn.client;
 
-import com.gastonlagaf.stun.model.Message;
 import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.turn.model.Message;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
@@ -15,10 +15,10 @@ public interface TurnClient extends UdpClient<Message>, Closeable {
 
     Integer createChannel(Integer number, InetSocketAddress target);
 
-    InetSocketAddress resolveChannel(Integer number);
-
     void send(Integer channelNumber, byte[] data);
 
     void send(InetSocketAddress receiver, byte[] data);
+
+    InetSocketAddress start(InetSocketAddress hostAddress);
 
 }

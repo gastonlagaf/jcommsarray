@@ -48,11 +48,15 @@ public class UdpChannelRegistry implements ChannelRegistry {
     }
 
     public SelectionKey register(String id, InetSocketAddress inetSocketAddress, BiConsumer<String, InetSocketAddress> closeListener) {
-        DatagramChannel channel = create(inetSocketAddress);
+        String queueMapKey = inetSocketAddress.getHostName() + ":" + inetSocketAddress.getPort();
+        if (writeQueueMap.containsKey(queueMapKey)) {
+            throw new IllegalArgumentException("Address already bound: " + inetSocketAddress);
+        }
 
         UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, closeListener);
-        String queueMapKey = inetSocketAddress.getHostName() + ":" + inetSocketAddress.getPort();
         writeQueueMap.put(queueMapKey, attachment.getWritingQueue());
+
+        DatagramChannel channel = create(inetSocketAddress);
 
         Selector selector = selectors.stream()
                 .min(Comparator.comparing(it -> it.keys().size()))
@@ -81,6 +85,10 @@ public class UdpChannelRegistry implements ChannelRegistry {
         }
         Optional.ofNullable(attachment.getCloseListener())
                 .ifPresent(it -> it.accept(attachment.getId(), attachment.getSocketAddress()));
+
+        InetSocketAddress socketAddress = attachment.getSocketAddress();
+        String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
+        writeQueueMap.remove(queueMapKey);
     }
 
     @Override

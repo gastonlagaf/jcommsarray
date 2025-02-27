@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.stun.codec.attribute;
+package com.gastonlagaf.udp.turn.codec.attribute;
 
-import com.gastonlagaf.udp.client.stun.model.MessageAttribute;
+import com.gastonlagaf.udp.turn.model.MessageAttribute;
 
 import java.nio.ByteBuffer;
 

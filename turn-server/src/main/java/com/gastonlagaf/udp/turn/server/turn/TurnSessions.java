@@ -1,8 +1,8 @@
-package com.gastonlagaf.udp.client.stun.server.turn;
+package com.gastonlagaf.udp.turn.server.turn;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.model.ErrorCode;
-import com.gastonlagaf.udp.client.stun.model.Protocol;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.model.ErrorCode;
+import com.gastonlagaf.udp.turn.model.Protocol;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;

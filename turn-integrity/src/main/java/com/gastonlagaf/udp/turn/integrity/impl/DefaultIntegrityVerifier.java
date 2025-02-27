@@ -1,12 +1,12 @@
-package com.gastonlagaf.udp.client.stun.integrity.impl;
+package com.gastonlagaf.udp.turn.integrity.impl;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.integrity.IntegrityVerifier;
-import com.gastonlagaf.udp.client.stun.integrity.model.IntegrityVerificationDetails;
-import com.gastonlagaf.udp.client.stun.integrity.utils.IntegrityUtils;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.user.UserProvider;
-import com.gastonlagaf.udp.client.stun.user.model.UserDetails;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.integrity.IntegrityVerifier;
+import com.gastonlagaf.udp.turn.integrity.model.IntegrityVerificationDetails;
+import com.gastonlagaf.udp.turn.integrity.utils.IntegrityUtils;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.user.UserProvider;
+import com.gastonlagaf.udp.turn.user.model.UserDetails;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;

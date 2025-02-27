@@ -1,46 +1,37 @@
 package com.gastonlagaf.udp.client.stun;
 
-import com.gastonlagaf.udp.client.stun.client.StunClient;
-import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
-import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.stun.codec.impl.MessageCodec;
-import com.gastonlagaf.udp.client.stun.model.Message;
-import com.gastonlagaf.udp.client.PendingMessages;
 import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
-import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
-import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
+import com.gastonlagaf.udp.turn.model.Message;
+import com.gastonlagaf.udp.turn.model.NatBehaviour;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HexFormat;
-import java.util.concurrent.CompletableFuture;
 
-public class StunClientProtocol implements ClientProtocol<Message> {
+public class StunClientProtocol extends BaseClientProtocol<Message> {
 
     private static final Integer WORKERS_COUNT = 1;
 
     private final CommunicationCodec<Message> codec = new MessageCodec();
 
-    private final PendingMessages<Message> pendingMessages;
-
-    private final UdpSockets<Message> sockets;
-
-    private final StunClient client;
-
-    public StunClientProtocol(ClientProperties properties) {
-        this.pendingMessages = new PendingMessages<>(properties.getSocketTimeout());
-        this.sockets = new UdpSockets<>(WORKERS_COUNT);
-        this.client = new UdpStunClient(properties, sockets, this);
-        this.sockets.start(this);
+    public StunClientProtocol(ClientProperties clientProperties) {
+        super(NatBehaviour.NO_NAT, clientProperties, WORKERS_COUNT);
     }
 
     @Override
-    public CompletableFuture<Message> awaitResult(Message message) {
-        String txId = HexFormat.of().formatHex(message.getHeader().getTransactionId());
-        return pendingMessages.put(txId);
+    protected String getCorrelationId(Message message) {
+        return HexFormat.of().formatHex(message.getHeader().getTransactionId());
+    }
+
+    @Override
+    protected UdpClient<Message> createUdpClient(UdpClient<Message> udpClient) {
+        return new UdpStunClient(udpClient, clientProperties);
     }
 
     @Override
@@ -58,27 +49,6 @@ public class StunClientProtocol implements ClientProtocol<Message> {
         String txId = HexFormat.of().formatHex(packet.getHeader().getTransactionId());
         pendingMessages.complete(txId, packet);
         return null;
-    }
-
-    @Override
-    public UdpClient<Message> getClient() {
-        return client;
-    }
-
-    @Override
-    public void start(InetSocketAddress... addresses) {
-        if (null == addresses) {
-            return;
-        }
-        for (InetSocketAddress address : addresses) {
-            this.sockets.getRegistry().register(address);
-        }
-        this.sockets.start(this);
-    }
-
-    @Override
-    public void close() throws IOException {
-        this.sockets.close();
     }
 
 }

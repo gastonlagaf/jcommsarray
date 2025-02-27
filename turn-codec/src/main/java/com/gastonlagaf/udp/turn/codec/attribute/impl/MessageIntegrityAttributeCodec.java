@@ -1,9 +1,9 @@
-package com.gastonlagaf.udp.client.stun.codec.attribute.impl;
+package com.gastonlagaf.udp.turn.codec.attribute.impl;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.IntegrityAttributeCodec;
-import com.gastonlagaf.udp.client.stun.integrity.utils.IntegrityUtils;
-import com.gastonlagaf.udp.client.stun.model.MessageHeader;
-import com.gastonlagaf.udp.client.stun.model.MessageIntegrityAttribute;
+import com.gastonlagaf.udp.turn.codec.attribute.IntegrityAttributeCodec;
+import com.gastonlagaf.udp.turn.integrity.utils.IntegrityUtils;
+import com.gastonlagaf.udp.turn.model.MessageHeader;
+import com.gastonlagaf.udp.turn.model.MessageIntegrityAttribute;
 import lombok.RequiredArgsConstructor;
 
 import java.nio.ByteBuffer;

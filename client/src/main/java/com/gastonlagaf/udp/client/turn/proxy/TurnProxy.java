@@ -1,18 +1,13 @@
-package com.gastonlagaf.turn.proxy;
+package com.gastonlagaf.udp.client.turn.proxy;
 
-import com.gastonlagaf.stun.client.model.StunClientProperties;
-import com.gastonlagaf.stun.model.Message;
-import com.gastonlagaf.turn.TurnClientProtocol;
-import com.gastonlagaf.turn.client.TurnClient;
-import com.gastonlagaf.turn.client.impl.UdpTurnClient;
 import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
+import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
-import com.gastonlagaf.udp.socket.UdpSockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class TurnProxy<T> implements UdpClient<T> {
@@ -21,15 +16,12 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     private final ClientProtocol<T> targetProtocol;
 
-    public TurnProxy(StunClientProperties properties, ClientProtocol<T> targetProtocol) {
-        Map<Integer, InetSocketAddress> channelBindings = new HashMap<>();
+    private final TurnClientProtocol<T> turnClientProtocol;
 
-        UdpSockets<Message> sockets = new UdpSockets<>(1);
-        TurnClientProtocol<T> turnClientProtocol = new TurnClientProtocol<>(targetProtocol, (long) properties.getSocketTimeout(), channelBindings);
-
-
-        this.turnClient = new UdpTurnClient(properties, sockets, turnClientProtocol, channelBindings);
+    public TurnProxy(ClientProperties properties, ClientProtocol<T> targetProtocol) {
+        this.turnClientProtocol = new TurnClientProtocol<>(targetProtocol, properties);
         this.targetProtocol = targetProtocol;
+        this.turnClient = (TurnClient) turnClientProtocol.getClient();
     }
 
     @Override
@@ -55,9 +47,13 @@ public class TurnProxy<T> implements UdpClient<T> {
         throw new UnsupportedOperationException();
     }
 
+    public void start(InetSocketAddress... addresses) {
+        this.turnClientProtocol.start(addresses);
+    }
+
     @Override
     public void close() throws IOException {
-        this.turnClient.close();
+        this.turnClientProtocol.close();
     }
 
 }

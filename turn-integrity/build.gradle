@@ -1,5 +1,5 @@
-group = rootProject.group + ".stun"
+group = rootProject.group + ".udp"
 
 dependencies {
-    api project(":model")
+    api project(":turn-model")
 }

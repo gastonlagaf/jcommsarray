@@ -1,31 +1,27 @@
 package com.gastonlagaf.udp.client.stun.client.impl;
 
-import com.gastonlagaf.udp.client.stun.StunClientProtocol;
-import com.gastonlagaf.udp.client.stun.client.StunClient;
+import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.UdpClientDelegate;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.BaseUdpClient;
-import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.client.stun.client.StunClient;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.model.*;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class UdpStunClient extends BaseUdpClient<Message> implements StunClient {
+public class UdpStunClient extends UdpClientDelegate<Message> implements StunClient {
 
     private final ClientProperties properties;
 
     private final InetSocketAddress defaultTargetAddress;
 
-    public UdpStunClient(ClientProperties properties, UdpSockets<Message> udpSockets, StunClientProtocol protocol) {
-        super(
-                udpSockets, protocol, properties.getHostAddress()
-        );
+    public UdpStunClient(UdpClient<Message> client, ClientProperties properties) {
+        super(client);
         this.properties = properties;
         this.defaultTargetAddress = properties.getStunAddress();
     }
@@ -42,7 +38,7 @@ public class UdpStunClient extends BaseUdpClient<Message> implements StunClient 
 
     @Override
     public NatBehaviour checkMappingBehaviour() {
-        AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, this.sourceAddress);
+        AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, properties.getHostAddress());
 
         Message test1 = sendBinding(null, Map.of());
         AddressAttribute addressAttribute1 = getMappedAddress(test1);
@@ -57,7 +53,7 @@ public class UdpStunClient extends BaseUdpClient<Message> implements StunClient 
             return NatBehaviour.ENDPOINT_INDEPENDENT;
         }
 
-        InetSocketAddress address3 = new InetSocketAddress(addressAttribute2.getAddress(), properties.getTargetPort());
+        InetSocketAddress address3 = new InetSocketAddress(addressAttribute2.getAddress(), properties.getStunAddress().getPort());
         Message test3 = sendBinding(address3, Map.of());
         AddressAttribute addressAttribute3 = getMappedAddress(test3);
 
@@ -66,7 +62,7 @@ public class UdpStunClient extends BaseUdpClient<Message> implements StunClient 
 
     @Override
     public NatBehaviour checkFilteringBehaviour() {
-        AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, this.sourceAddress);
+        AddressAttribute baseAddressAttribute = new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, properties.getHostAddress());
 
         Message test1 = sendBinding(null, Map.of());
         AddressAttribute addressAttribute1 = getMappedAddress(test1);
@@ -108,15 +104,6 @@ public class UdpStunClient extends BaseUdpClient<Message> implements StunClient 
                     }
                     return it;
                 });
-    }
-
-    @Override
-    public void close() {
-        try {
-            udpSockets.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private Message sendBinding(InetSocketAddress address, Map<Integer, MessageAttribute> attributes) {

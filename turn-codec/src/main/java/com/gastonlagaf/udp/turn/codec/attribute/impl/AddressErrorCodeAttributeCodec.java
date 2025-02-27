@@ -1,10 +1,10 @@
-package com.gastonlagaf.udp.client.stun.codec.attribute.impl;
+package com.gastonlagaf.udp.turn.codec.attribute.impl;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.BaseMessageAttributeCodec;
-import com.gastonlagaf.udp.client.stun.codec.util.CodecUtils;
-import com.gastonlagaf.udp.client.stun.model.AddressErrorCodeAttribute;
-import com.gastonlagaf.udp.client.stun.model.IpFamily;
-import com.gastonlagaf.udp.client.stun.model.MessageHeader;
+import com.gastonlagaf.udp.turn.codec.attribute.BaseMessageAttributeCodec;
+import com.gastonlagaf.udp.turn.codec.util.CodecUtils;
+import com.gastonlagaf.udp.turn.model.AddressErrorCodeAttribute;
+import com.gastonlagaf.udp.turn.model.IpFamily;
+import com.gastonlagaf.udp.turn.model.MessageHeader;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

@@ -1,1 +1,1 @@
-group = rootProject.group + ".stun"
+group = rootProject.group + ".udp"

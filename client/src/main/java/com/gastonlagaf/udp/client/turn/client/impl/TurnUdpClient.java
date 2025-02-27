@@ -1,12 +1,10 @@
-package com.gastonlagaf.turn.client.impl;
+package com.gastonlagaf.udp.client.turn.client.impl;
 
-import com.gastonlagaf.stun.client.model.StunClientProperties;
-import com.gastonlagaf.stun.exception.StunProtocolException;
-import com.gastonlagaf.stun.model.*;
-import com.gastonlagaf.turn.TurnClientProtocol;
-import com.gastonlagaf.turn.client.TurnClient;
-import com.gastonlagaf.udp.client.BaseUdpClient;
-import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.UdpClientDelegate;
+import com.gastonlagaf.udp.client.turn.client.TurnClient;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.model.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,7 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient {
+public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnClient {
 
     private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r);
@@ -28,27 +26,20 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
 
     private static final Long REFRESH_RATE_MINUTES = DEFAULT_LIFETIME_MINUTES - 1L;
 
-    private final InetSocketAddress targetAddress;
-
     private final Map<Integer, InetSocketAddress> channelBindings;
 
     private final Set<InetSocketAddress> bindings = new HashSet<>();
 
     private final ScheduledFuture<?> refreshSchedule;
 
-    public UdpTurnClient(StunClientProperties properties, UdpSockets<Message> udpSockets, TurnClientProtocol<?> protocol, Map<Integer, InetSocketAddress> channelBindings) {
-        super(udpSockets, protocol);
+    private final InetSocketAddress sourceAddress;
 
+    private InetSocketAddress targetAddress = null;
+
+    public TurnUdpClient(UdpClient<Message> udpClient, InetSocketAddress sourceAddress, Map<Integer, InetSocketAddress> channelBindings) {
+        super(udpClient);
+        this.sourceAddress = sourceAddress;
         this.channelBindings = channelBindings;
-
-        try {
-            InetSocketAddress stunAddress = new InetSocketAddress(properties.getServerHost(), properties.getServerPort());
-            this.targetAddress = doInit(stunAddress);
-        } catch (StunProtocolException e) {
-            close();
-            throw e;
-        }
-
         this.refreshSchedule = executor.scheduleAtFixedRate(
                 () -> refresh(DEFAULT_LIFETIME_MINUTES),
                 REFRESH_RATE_MINUTES, REFRESH_RATE_MINUTES, TimeUnit.MINUTES
@@ -100,12 +91,8 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
     }
 
     @Override
-    public InetSocketAddress resolveChannel(Integer number) {
-        return channelBindings.get(number);
-    }
-
-    @Override
     public void send(Integer channelNumber, byte[] data) {
+        assertTurnSessionStarted();
         if (!channelBindings.containsKey(channelNumber)) {
             throw new StunProtocolException("Binding not registered for channel " + channelNumber, ErrorCode.BAD_REQUEST.getCode());
         }
@@ -121,6 +108,7 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
 
     @Override
     public void send(InetSocketAddress receiver, byte[] data) {
+        assertTurnSessionStarted();
         if (!bindings.contains(receiver)) {
             throw new StunProtocolException("Binding not registered for address " + receiver.toString(), ErrorCode.BAD_REQUEST.getCode());
         }
@@ -132,6 +120,20 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
 
         Message message = new Message(messageHeader, attributes);
         send(this.sourceAddress, this.targetAddress, message);
+    }
+
+    public InetSocketAddress start(InetSocketAddress turnAddress) {
+        MessageHeader messageHeader = new MessageHeader(MessageType.ALLOCATE);
+        Map<Integer, MessageAttribute> attributes = Map.of(
+                KnownAttributeName.REQUESTED_TRANSPORT.getCode(), new RequestedTransportAttribute(Protocol.UDP)
+        );
+        Message message = new Message(messageHeader, attributes);
+        Message response = sendAndReceive(turnAddress, message).join();
+
+        this.targetAddress = response.getAttributes()
+                .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
+                .toInetSocketAddress();
+        return this.targetAddress;
     }
 
     @Override
@@ -156,6 +158,7 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
     }
 
     private void sendAndReceive(Message message) {
+        assertTurnSessionStarted();
         Message response = sendAndReceive(this.targetAddress, message).join();
         ErrorCodeAttribute errorAttribute = response.getAttributes().get(KnownAttributeName.ERROR_CODE);
         if (null != errorAttribute) {
@@ -163,16 +166,10 @@ public class UdpTurnClient extends BaseUdpClient<Message> implements TurnClient 
         }
     }
 
-    private InetSocketAddress doInit(InetSocketAddress stunAddress) {
-        MessageHeader messageHeader = new MessageHeader(MessageType.ALLOCATE);
-        Map<Integer, MessageAttribute> attributes = Map.of(
-                KnownAttributeName.REQUESTED_TRANSPORT.getCode(), new RequestedTransportAttribute(com.gastonlagaf.stun.model.Protocol.UDP)
-        );
-        Message message = new Message(messageHeader, attributes);
-        Message response = sendAndReceive(stunAddress, message).join();
-        return response.getAttributes()
-                .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
-                .toInetSocketAddress();
+    private void assertTurnSessionStarted() {
+        if (null == targetAddress) {
+            throw new IllegalStateException("Turn session has not been started");
+        }
     }
 
 }

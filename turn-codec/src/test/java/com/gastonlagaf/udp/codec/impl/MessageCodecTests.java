@@ -1,10 +1,11 @@
-package com.gastonlagaf.udp.client.stun.codec.impl;
+package com.gastonlagaf.udp.codec.impl;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.impl.MessageIntegrityAttributeCodec;
-import com.gastonlagaf.udp.client.stun.codec.buffer.NonResizableBuffer;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.user.model.UserDetails;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
+import com.gastonlagaf.udp.turn.codec.attribute.impl.MessageIntegrityAttributeCodec;
+import com.gastonlagaf.udp.turn.codec.buffer.NonResizableBuffer;
+import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.user.model.UserDetails;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

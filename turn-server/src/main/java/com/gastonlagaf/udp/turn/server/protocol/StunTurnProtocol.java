@@ -1,21 +1,21 @@
-package com.gastonlagaf.udp.client.stun.server.protocol;
+package com.gastonlagaf.udp.turn.server.protocol;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.integrity.IntegrityVerifier;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.server.codec.ServerMessageCodec;
-import com.gastonlagaf.udp.client.stun.server.handler.StunMessageHandler;
-import com.gastonlagaf.udp.client.stun.server.handler.impl.*;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.ServerDispatcher;
-import com.gastonlagaf.udp.client.stun.server.model.StunResponse;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSession;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSessions;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.udp.protocol.Protocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpChannelRegistry;
 import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.integrity.IntegrityVerifier;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.server.codec.ServerMessageCodec;
+import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
+import com.gastonlagaf.udp.turn.server.handler.impl.*;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.ServerDispatcher;
+import com.gastonlagaf.udp.turn.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.server.turn.TurnSession;
+import com.gastonlagaf.udp.turn.server.turn.TurnSessions;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;

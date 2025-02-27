@@ -1,7 +1,7 @@
-package com.gastonlagaf.udp.client.stun.integrity.utils;
+package com.gastonlagaf.udp.turn.integrity.utils;
 
-import com.gastonlagaf.udp.client.stun.model.MessageHeader;
-import com.gastonlagaf.udp.client.stun.model.PasswordAlgorithm;
+import com.gastonlagaf.udp.turn.model.MessageHeader;
+import com.gastonlagaf.udp.turn.model.PasswordAlgorithm;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

@@ -1,8 +1,8 @@
-group = rootProject.group + ".stun"
+group = rootProject.group + ".udp.client"
 
 dependencies {
-    api project(":codec")
-    api project(":client-base")
+    api project(":turn-codec")
+    api project(":udp-core")
 
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
 }

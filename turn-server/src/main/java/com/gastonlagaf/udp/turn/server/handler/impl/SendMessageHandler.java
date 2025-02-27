@@ -1,12 +1,12 @@
-package com.gastonlagaf.udp.client.stun.server.handler.impl;
+package com.gastonlagaf.udp.turn.server.handler.impl;
 
-import com.gastonlagaf.udp.client.stun.model.AddressAttribute;
-import com.gastonlagaf.udp.client.stun.model.DefaultMessageAttribute;
-import com.gastonlagaf.udp.client.stun.model.KnownAttributeName;
-import com.gastonlagaf.udp.client.stun.model.MessageType;
-import com.gastonlagaf.udp.client.stun.server.handler.StunMessageHandler;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.model.AddressAttribute;
+import com.gastonlagaf.udp.turn.model.DefaultMessageAttribute;
+import com.gastonlagaf.udp.turn.model.KnownAttributeName;
+import com.gastonlagaf.udp.turn.model.MessageType;
+import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.StunResponse;
 import lombok.RequiredArgsConstructor;
 
 import java.net.InetSocketAddress;

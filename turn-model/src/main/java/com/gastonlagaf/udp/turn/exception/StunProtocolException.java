@@ -1,4 +1,4 @@
-package com.gastonlagaf.udp.client.stun.exception;
+package com.gastonlagaf.udp.turn.exception;
 
 import lombok.Getter;
 

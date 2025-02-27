@@ -1,8 +1,8 @@
-package com.gastonlagaf.udp.client.stun.server.handler;
+package com.gastonlagaf.udp.turn.server.handler;
 
-import com.gastonlagaf.udp.client.stun.model.MessageType;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.model.MessageType;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.StunResponse;
 
 import java.net.InetSocketAddress;
 

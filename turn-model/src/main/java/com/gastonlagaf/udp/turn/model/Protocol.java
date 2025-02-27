@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.stun.model;
+package com.gastonlagaf.udp.turn.model;
 
-import com.gastonlagaf.udp.client.stun.util.CodeMappingUtils;
+import com.gastonlagaf.udp.turn.util.CodeMappingUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

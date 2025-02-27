@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.stun.integrity;
+package com.gastonlagaf.udp.turn.integrity;
 
-import com.gastonlagaf.udp.client.stun.model.Message;
+import com.gastonlagaf.udp.turn.model.Message;
 
 public interface IntegrityVerifier {
 

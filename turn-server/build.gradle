@@ -1,9 +1,9 @@
 group = rootProject.group + ".stun"
 
 dependencies {
-    api project(":codec")
-    api project(":udp-protocol")
-    api project(":integrity")
+    api project(":turn-codec")
+    api project(":udp-core")
+    api project(":turn-integrity")
 
     api "com.github.ben-manes.caffeine:caffeine:${caffeine_version}"
 

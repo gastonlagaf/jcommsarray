@@ -1,14 +1,14 @@
-package com.gastonlagaf.udp.client.stun.server.handler.impl;
+package com.gastonlagaf.udp.turn.server.handler.impl;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.integrity.IntegrityVerifier;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.server.handler.StunMessageHandler;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.StunResponse;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSession;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSessions;
 import com.gastonlagaf.udp.socket.ChannelRegistry;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.integrity.IntegrityVerifier;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.server.turn.TurnSession;
+import com.gastonlagaf.udp.turn.server.turn.TurnSessions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +50,7 @@ public class AllocateMessageHandler implements StunMessageHandler {
 
         Integer port = turnSessions.allocatePort();
         InetSocketAddress turnServerAddress = new InetSocketAddress(serverAddress.getHostName(), port);
-        SelectionKey key = channelRegistry.register(turnServerAddress.getHostName(), turnServerAddress.getPort());
+        SelectionKey key = channelRegistry.register(turnServerAddress);
         TurnSession turnSession = new TurnSession(clientAddress, turnServerAddress, key);
         turnSessions.put(turnSession, Protocol.UDP);
 

@@ -1,7 +1,7 @@
-package com.gastonlagaf.udp.client.stun.codec.attribute;
+package com.gastonlagaf.udp.turn.codec.attribute;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.impl.*;
-import com.gastonlagaf.udp.client.stun.model.KnownAttributeName;
+import com.gastonlagaf.udp.turn.codec.attribute.impl.*;
+import com.gastonlagaf.udp.turn.model.KnownAttributeName;
 
 import java.util.Map;
 

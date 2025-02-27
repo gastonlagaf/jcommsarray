@@ -1,7 +1,7 @@
-group = rootProject.group + ".stun"
+group = rootProject.group + ".udp"
 
 dependencies {
     api project(":codec-api")
-    api project(":model")
-    api project(":integrity")
+    api project(":turn-model")
+    api project(":turn-integrity")
 }

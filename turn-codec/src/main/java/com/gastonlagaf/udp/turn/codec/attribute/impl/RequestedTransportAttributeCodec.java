@@ -1,9 +1,9 @@
-package com.gastonlagaf.udp.client.stun.codec.attribute.impl;
+package com.gastonlagaf.udp.turn.codec.attribute.impl;
 
-import com.gastonlagaf.udp.client.stun.codec.attribute.BaseMessageAttributeCodec;
-import com.gastonlagaf.udp.client.stun.model.MessageHeader;
-import com.gastonlagaf.udp.client.stun.model.Protocol;
-import com.gastonlagaf.udp.client.stun.model.RequestedTransportAttribute;
+import com.gastonlagaf.udp.turn.codec.attribute.BaseMessageAttributeCodec;
+import com.gastonlagaf.udp.turn.model.MessageHeader;
+import com.gastonlagaf.udp.turn.model.Protocol;
+import com.gastonlagaf.udp.turn.model.RequestedTransportAttribute;
 
 import java.nio.ByteBuffer;
 import java.util.stream.IntStream;

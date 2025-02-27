@@ -1,7 +1,7 @@
-package com.gastonlagaf.udp.client.stun.user.impl;
+package com.gastonlagaf.udp.turn.user.impl;
 
-import com.gastonlagaf.udp.client.stun.user.UserProvider;
-import com.gastonlagaf.udp.client.stun.user.model.UserDetails;
+import com.gastonlagaf.udp.turn.user.UserProvider;
+import com.gastonlagaf.udp.turn.user.model.UserDetails;
 
 import java.util.Optional;
 

@@ -1,11 +1,11 @@
-package com.gastonlagaf.udp.client.stun.server.handler.impl;
+package com.gastonlagaf.udp.turn.server.handler.impl;
 
-import com.gastonlagaf.udp.client.stun.exception.StunProtocolException;
-import com.gastonlagaf.udp.client.stun.model.*;
-import com.gastonlagaf.udp.client.stun.server.handler.StunMessageHandler;
-import com.gastonlagaf.udp.client.stun.server.model.ContexedMessage;
-import com.gastonlagaf.udp.client.stun.server.model.StunResponse;
-import com.gastonlagaf.udp.client.stun.server.turn.TurnSession;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.model.*;
+import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
+import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
+import com.gastonlagaf.udp.turn.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.server.turn.TurnSession;
 import lombok.RequiredArgsConstructor;
 
 import java.net.InetSocketAddress;

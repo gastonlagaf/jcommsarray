@@ -1,23 +1,28 @@
-package com.gastonlagaf.turn;
+package com.gastonlagaf.udp.client.turn;
 
-import com.gastonlagaf.stun.codec.impl.MessageCodec;
-import com.gastonlagaf.stun.model.*;
-import com.gastonlagaf.udp.client.PendingMessages;
 import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.turn.client.TurnClient;
+import com.gastonlagaf.udp.client.turn.client.impl.TurnUdpClient;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
+import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
+import com.gastonlagaf.udp.turn.model.*;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
-public class TurnClientProtocol<T> implements ClientProtocol<Message> {
+public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
+
+    private static final Integer REQUIRED_HOST_ADDRESS_COUNT = 1;
+
+    private static final Integer WORKERS_COUNT = 1;
 
     private static final Set<MessageType> RESPONSE_MESSAGE_TYPES = Set.of(
             MessageType.BINDING_REQUEST,
@@ -31,20 +36,22 @@ public class TurnClientProtocol<T> implements ClientProtocol<Message> {
 
     private final Map<Integer, InetSocketAddress> channelBindings;
 
-    private final PendingMessages<Message> pendingMessages;
-
     private final ClientProtocol<T> targetProtocol;
 
-    public TurnClientProtocol(ClientProtocol<T> targetProtocol, Long socketTimeoutMillis, Map<Integer, InetSocketAddress> channelBindings) {
-        this.pendingMessages = new PendingMessages<>(socketTimeoutMillis);
+    public TurnClientProtocol(ClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
+        super(NatBehaviour.NO_NAT, clientProperties, WORKERS_COUNT);
         this.targetProtocol = targetProtocol;
-        this.channelBindings = channelBindings;
+        this.channelBindings = new HashMap<>();
     }
 
     @Override
-    public CompletableFuture<Message> awaitResult(Message message) {
-        String txId = HexFormat.of().formatHex(message.getHeader().getTransactionId());
-        return pendingMessages.put(txId);
+    protected String getCorrelationId(Message message) {
+        return HexFormat.of().formatHex(message.getHeader().getTransactionId());
+    }
+
+    @Override
+    protected UdpClient<Message> createUdpClient(UdpClient<Message> udpClient) {
+        return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), channelBindings);
     }
 
     @Override
@@ -75,8 +82,12 @@ public class TurnClientProtocol<T> implements ClientProtocol<Message> {
     }
 
     @Override
-    public UdpClient<Message> getClient() {
-        throw new UnsupportedOperationException();
+    public void start(InetSocketAddress... addresses) {
+        if (!REQUIRED_HOST_ADDRESS_COUNT.equals(addresses.length)) {
+            throw new IllegalArgumentException("Only one host address allowed");
+        }
+        super.start(addresses);
+        ((TurnClient) client).start(clientProperties.getTurnAddress());
     }
 
     private InetSocketAddress extractSender(Message message) {
@@ -90,13 +101,4 @@ public class TurnClientProtocol<T> implements ClientProtocol<Message> {
         };
     }
 
-    @Override
-    public void start(InetSocketAddress... addresses) {
-        // No-op
-    }
-
-    @Override
-    public void close() throws IOException {
-        // No-op
-    }
 }
