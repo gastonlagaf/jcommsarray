@@ -8,7 +8,9 @@ import com.gastonlagaf.udp.protocol.ClientProtocol;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TurnProxy<T> implements UdpClient<T> {
 
@@ -18,6 +20,8 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     private final TurnClientProtocol<T> turnClientProtocol;
 
+    private final Map<InetSocketAddress, Integer> channelBindings = new ConcurrentHashMap<>();
+
     public TurnProxy(ClientProperties properties, ClientProtocol<T> targetProtocol) {
         this.turnClientProtocol = new TurnClientProtocol<>(targetProtocol, properties);
         this.targetProtocol = targetProtocol;
@@ -26,8 +30,9 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     @Override
     public void send(InetSocketAddress target, T message) {
+        Integer channelNumber = channelBindings.computeIfAbsent(target, turnClient::createChannel);
         byte[] data = targetProtocol.serialize(message).array();
-        turnClient.send(target, data);
+        turnClient.send(channelNumber, data);
     }
 
     @Override

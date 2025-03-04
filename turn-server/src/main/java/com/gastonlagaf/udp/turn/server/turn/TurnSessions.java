@@ -132,13 +132,13 @@ public class TurnSessions {
         if (null == turnSession) {
             return;
         }
-        try {
-            turnSession.getSelectionKey().channel().close();
+//        try {
+            turnSession.getSelectionKey().cancel();
             allocatedPorts.remove(turnSession.getServerAddress().getPort());
             log.info("Evicted turn server socket {}", turnSession.getServerAddress().toString());
-        } catch (IOException e) {
-            log.error("Error closing turn channel", e);
-        }
+//        } catch (IOException e) {
+//            log.error("Error closing turn channel", e);
+//        }
     }
 
 }

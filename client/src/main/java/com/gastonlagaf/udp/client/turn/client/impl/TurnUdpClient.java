@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnClient {
 
@@ -33,6 +34,8 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
     private final ScheduledFuture<?> refreshSchedule;
 
     private final InetSocketAddress sourceAddress;
+
+    private final AtomicInteger channelCounter = new AtomicInteger(ChannelNumberAttribute.MIN_CHANNEL_NUMBER);
 
     private InetSocketAddress targetAddress = null;
 
@@ -65,12 +68,7 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
 
     @Override
     public Integer createChannel(InetSocketAddress target) {
-        int channelNumber;
-        do {
-            channelNumber = new Random().nextInt(
-                    ChannelNumberAttribute.MIN_CHANNEL_NUMBER, ChannelNumberAttribute.MAX_CHANNEL_NUMBER + 1
-            );
-        } while (channelBindings.containsKey(channelNumber));
+        int channelNumber = channelCounter.getAndIncrement();
 
         return createChannel(channelNumber, target);
     }

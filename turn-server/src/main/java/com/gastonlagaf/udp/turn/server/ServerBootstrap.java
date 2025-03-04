@@ -2,6 +2,9 @@ package com.gastonlagaf.udp.turn.server;
 
 import com.gastonlagaf.udp.turn.server.model.StunInstanceProperties;
 import com.gastonlagaf.udp.turn.server.model.StunServerProperties;
+import com.gastonlagaf.udp.turn.server.protocol.StunTurnProtocol;
+
+import java.net.InetSocketAddress;
 
 public class ServerBootstrap {
 
@@ -10,8 +13,10 @@ public class ServerBootstrap {
                 new StunInstanceProperties("192.168.0.109", 3478, 3479),
                 null, true, 1
         );
-        StunServer stunServer = new StunServer(stunServerProperties);
-        stunServer.start();
+        StunTurnProtocol protocol = new StunTurnProtocol(stunServerProperties);
+        protocol.start(
+                stunServerProperties.getServers().values().toArray(InetSocketAddress[]::new)
+        );
     }
 
 }

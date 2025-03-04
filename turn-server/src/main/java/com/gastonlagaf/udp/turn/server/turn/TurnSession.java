@@ -47,6 +47,10 @@ public class TurnSession {
         }
     }
 
+    public Boolean contains(Integer channel, InetSocketAddress address) {
+        return addressesByChannel.containsKey(channel) || channelsByAddress.containsKey(address);
+    }
+
     public Boolean containsChannel(Integer channel) {
         return addressesByChannel.containsKey(channel);
     }

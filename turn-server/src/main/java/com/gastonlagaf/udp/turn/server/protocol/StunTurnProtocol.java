@@ -12,8 +12,9 @@ import com.gastonlagaf.udp.turn.server.codec.ServerMessageCodec;
 import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
 import com.gastonlagaf.udp.turn.server.handler.impl.*;
 import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
-import com.gastonlagaf.udp.turn.server.model.ServerDispatcher;
+import com.gastonlagaf.udp.turn.server.model.ServersDispatcher;
 import com.gastonlagaf.udp.turn.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.server.model.StunServerProperties;
 import com.gastonlagaf.udp.turn.server.turn.TurnSession;
 import com.gastonlagaf.udp.turn.server.turn.TurnSessions;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class StunTurnProtocol implements Protocol<ContexedMessage> {
@@ -35,14 +38,17 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
 
     private final UdpSockets<ContexedMessage> sockets;
 
-    public StunTurnProtocol(ServerDispatcher serverDispatcher, Map<String, TurnSessions> turnSessionsMap, IntegrityVerifier integrityVerifier, Integer workersCount) {
-        this.turnSessionsMap = turnSessionsMap;
+    public StunTurnProtocol(StunServerProperties properties) {
+        this.turnSessionsMap = properties.getEnableTurn()
+                ? properties.getIpAddresses().stream().collect(Collectors.toMap(Function.identity(), it -> new TurnSessions()))
+                : null;
 
-        UdpChannelRegistry registry = new UdpChannelRegistry(workersCount);
+        UdpChannelRegistry registry = new UdpChannelRegistry(properties.getWorkersCount());
+        ServersDispatcher serversDispatcher = new ServersDispatcher(properties.getServers());
 
         this.handlers = Map.of(
-                MessageType.BINDING_REQUEST, new BindingRequestMessageHandler(serverDispatcher),
-                MessageType.ALLOCATE, new AllocateMessageHandler(turnSessionsMap, integrityVerifier, registry),
+                MessageType.BINDING_REQUEST, new BindingRequestMessageHandler(serversDispatcher),
+                MessageType.ALLOCATE, new AllocateMessageHandler(turnSessionsMap, null, registry),
                 MessageType.REFRESH, new RefreshMessageHandler(turnSessionsMap),
                 MessageType.CREATE_PERMISSION, new CreatePermissionRequestHandler(),
                 MessageType.SEND, new SendMessageHandler(),
@@ -107,13 +113,13 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
 
     @Override
     public void start(InetSocketAddress... addresses) {
+        sockets.start(this);
         if (null == addresses) {
             return;
         }
         for (InetSocketAddress address : addresses) {
             this.sockets.getRegistry().register(address);
         }
-        this.sockets.start(this);
     }
 
     @Override

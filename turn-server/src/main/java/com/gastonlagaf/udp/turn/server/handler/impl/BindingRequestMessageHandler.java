@@ -4,7 +4,7 @@ import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import com.gastonlagaf.udp.turn.model.*;
 import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
 import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
-import com.gastonlagaf.udp.turn.server.model.ServerDispatcher;
+import com.gastonlagaf.udp.turn.server.model.ServersDispatcher;
 import com.gastonlagaf.udp.turn.server.model.ServerType;
 import com.gastonlagaf.udp.turn.server.model.StunResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BindingRequestMessageHandler implements StunMessageHandler {
 
-    private final ServerDispatcher serverDispatcher;
+    private final ServersDispatcher serversDispatcher;
 
     @Override
     public MessageType getMessageType() {
@@ -55,9 +55,9 @@ public class BindingRequestMessageHandler implements StunMessageHandler {
                 new AddressAttribute(KnownAttributeName.RESPONSE_ORIGIN, serverAddress)
         );
 
-        ServerType currentServerType = serverDispatcher.getServerType(serverAddress);
+        ServerType currentServerType = serversDispatcher.getServerType(serverAddress);
         ServerType otherServer = ServerType.getOther(currentServerType);
-        InetSocketAddress otherAddress = serverDispatcher.getAddress(otherServer);
+        InetSocketAddress otherAddress = serversDispatcher.getAddress(otherServer);
         if (null != otherAddress) {
             attributes.put(
                     KnownAttributeName.OTHER_ADDRESS.getCode(),
@@ -68,18 +68,18 @@ public class BindingRequestMessageHandler implements StunMessageHandler {
     }
 
     private InetSocketAddress getSenderAddress(InetSocketAddress currentServerAddress, Message message) {
-        ServerType currentServerType = serverDispatcher.getServerType(currentServerAddress);
+        ServerType currentServerType = serversDispatcher.getServerType(currentServerAddress);
         ChangeRequestAttribute changeRequestAttribute = message.getAttributes()
                 .get(KnownAttributeName.CHANGE_REQUEST.getCode());
         if (null == changeRequestAttribute) {
-            return serverDispatcher.getAddress(currentServerType);
+            return serversDispatcher.getAddress(currentServerType);
         }
         ServerType changedServer = ServerType.change(
                 currentServerType,
                 changeRequestAttribute.getChangeHost(),
                 changeRequestAttribute.getChangePort()
         );
-        return Optional.ofNullable(serverDispatcher.getAddress(changedServer))
+        return Optional.ofNullable(serversDispatcher.getAddress(changedServer))
                 .orElseThrow(() -> new StunProtocolException(
                         "Server does not support RFC 5780 filtering test",
                         ErrorCode.UNKNOWN_ATTRIBUTE.getCode()

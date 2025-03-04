@@ -4,13 +4,13 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServerDispatcher {
+public class ServersDispatcher {
 
     private final Map<InetSocketAddress, ServerType> serverTypeMap = new HashMap<>();
 
     private final Map<ServerType, InetSocketAddress> addressMap = new HashMap<>();
 
-    public ServerDispatcher(Map<ServerType, InetSocketAddress> serverTypeMap) {
+    public ServersDispatcher(Map<ServerType, InetSocketAddress> serverTypeMap) {
         serverTypeMap.forEach((key, value) -> {
             this.serverTypeMap.put(value, key);
             this.addressMap.put(key, value);
