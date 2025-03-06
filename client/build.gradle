@@ -1,4 +1,4 @@
-group = rootProject.group + ".udp.client"
+group = rootProject.group + ".udp"
 
 dependencies {
     api project(":turn-codec")

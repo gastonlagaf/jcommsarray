@@ -14,18 +14,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class TurnProxy<T> implements UdpClient<T> {
 
-    private final TurnClient turnClient;
-
     private final ClientProtocol<T> targetProtocol;
 
     private final TurnClientProtocol<T> turnClientProtocol;
 
     private final Map<InetSocketAddress, Integer> channelBindings = new ConcurrentHashMap<>();
 
+    private TurnClient turnClient;
+
     public TurnProxy(ClientProperties properties, ClientProtocol<T> targetProtocol) {
         this.turnClientProtocol = new TurnClientProtocol<>(targetProtocol, properties);
         this.targetProtocol = targetProtocol;
-        this.turnClient = (TurnClient) turnClientProtocol.getClient();
     }
 
     @Override
@@ -54,6 +53,7 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     public void start(InetSocketAddress... addresses) {
         this.turnClientProtocol.start(addresses);
+        this.turnClient = (TurnClient) turnClientProtocol.getClient();
     }
 
     @Override

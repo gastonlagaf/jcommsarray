@@ -36,11 +36,12 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     private final ClientProtocol<T> targetProtocol;
 
-    private Map<Integer, InetSocketAddress> channelBindings;
+    private final Map<Integer, InetSocketAddress> channelBindings;
 
     public TurnClientProtocol(ClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
         super(NatBehaviour.NO_NAT, clientProperties, WORKERS_COUNT);
         this.targetProtocol = targetProtocol;
+        this.channelBindings = new HashMap<>();
     }
 
     @Override
@@ -50,7 +51,6 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     @Override
     protected UdpClient<Message> createUdpClient(UdpClient<Message> udpClient) {
-        this.channelBindings = new HashMap<>();
         return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), this.channelBindings);
     }
 

@@ -72,9 +72,14 @@ public class UdpChannelRegistry implements ChannelRegistry {
     @Override
     public void deregister(SelectionKey key) {
         UdpSocketAttachment attachment = (UdpSocketAttachment) key.attachment();
+
+        InetSocketAddress socketAddress = attachment.getSocketAddress();
+        String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
+
         if (!key.isValid()) {
             Optional.ofNullable(attachment.getCloseListener())
                     .ifPresent(it -> it.accept(attachment.getId(), attachment.getSocketAddress()));
+            writeQueueMap.remove(queueMapKey);
             return;
         }
         key.cancel();
@@ -85,9 +90,6 @@ public class UdpChannelRegistry implements ChannelRegistry {
         }
         Optional.ofNullable(attachment.getCloseListener())
                 .ifPresent(it -> it.accept(attachment.getId(), attachment.getSocketAddress()));
-
-        InetSocketAddress socketAddress = attachment.getSocketAddress();
-        String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
         writeQueueMap.remove(queueMapKey);
     }
 

@@ -74,10 +74,12 @@ public class UdpSockets<T> implements Closeable {
     }
 
     public void send(InetSocketAddress source, InetSocketAddress target, ByteBuffer data) {
+        log.info("Sending data from {} to {}", source, target);
         UdpWriteEntry writeEntry = new UdpWriteEntry(target, data);
         String queueMapKey = source.getHostName() + ":" + source.getPort();
         BlockingQueue<UdpWriteEntry> queue = registry.getWriteQueueMap().get(queueMapKey);
         if (null == queue) {
+            log.info("Skipping send");
             return;
         }
         try {

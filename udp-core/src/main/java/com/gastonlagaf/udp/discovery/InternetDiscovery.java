@@ -1,4 +1,4 @@
-package com.gastonlagaf.udp.client.discovery;
+package com.gastonlagaf.udp.discovery;
 
 import lombok.SneakyThrows;
 
@@ -15,7 +15,7 @@ public class InternetDiscovery {
         return NetworkInterface.networkInterfaces()
                 .filter(it -> {
                     try {
-                        return !it.isLoopback() && it.isUp();
+                        return !it.isLoopback() && it.isUp() && it.getDisplayName().startsWith("e");
                     } catch (SocketException e) {
                         throw new RuntimeException(e);
                     }

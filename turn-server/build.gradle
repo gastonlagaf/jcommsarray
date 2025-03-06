@@ -1,5 +1,17 @@
 group = rootProject.group + ".stun"
 
+jar {
+    dependsOn configurations.runtimeClasspath
+
+    manifest.attributes["Main-Class"] = "com.gastonlagaf.udp.turn.server.ServerBootstrap"
+
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 dependencies {
     api project(":turn-codec")
     api project(":udp-core")

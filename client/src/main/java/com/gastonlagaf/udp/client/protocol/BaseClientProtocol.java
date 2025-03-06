@@ -3,7 +3,7 @@ package com.gastonlagaf.udp.client.protocol;
 import com.gastonlagaf.udp.client.BaseUdpClient;
 import com.gastonlagaf.udp.client.PendingMessages;
 import com.gastonlagaf.udp.client.UdpClient;
-import com.gastonlagaf.udp.client.discovery.InternetDiscovery;
+import com.gastonlagaf.udp.discovery.InternetDiscovery;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.StunClient;
@@ -29,11 +29,15 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     protected final ClientProperties clientProperties;
 
-    protected final UdpSockets<T> sockets;
-
-    protected final UdpClient<T> client;
-
     protected final PendingMessages<T> pendingMessages;
+
+    protected final NatBehaviour natBehaviour;
+
+    protected final Integer threadCount;
+
+    protected UdpSockets<T> sockets;
+
+    protected UdpClient<T> client;
 
     public BaseClientProtocol(Integer threads) {
         this(null, null, threads);
@@ -41,20 +45,10 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     public BaseClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, Integer threads) {
         this.clientProperties = Optional.ofNullable(clientProperties).orElseGet(this::getClientProperties);
-        NatBehaviour targetNatBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
+        this.natBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
+        this.threadCount = threads;
 
         this.pendingMessages = new PendingMessages<>(this.clientProperties.getSocketTimeout());
-
-        UdpClient<T> client;
-        if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(targetNatBehaviour)) {
-            this.sockets = new UdpSockets<>(threads);
-            client = new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
-        } else {
-            this.sockets = null;
-            client = new TurnProxy<>(this.clientProperties, this);
-        }
-
-        this.client = createUdpClient(client);
     }
 
     protected abstract String getCorrelationId(T message);
@@ -96,13 +90,20 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     @Override
     public void start(InetSocketAddress... addresses) {
-        if (null != sockets) {
+        UdpClient<T> client;
+        if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(this.natBehaviour)) {
+            this.sockets = new UdpSockets<>(threadCount);
+            client = new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
             sockets.start(this);
             for (InetSocketAddress address : addresses) {
                 sockets.getRegistry().register(address);
             }
+        } else {
+            this.sockets = null;
+            client = new TurnProxy<>(this.clientProperties, this);
         }
-        Optional.ofNullable(sockets).ifPresent(it -> it.start(this));
+        this.client = createUdpClient(client);
+
         if (client instanceof TurnProxy<T> turnProxy) {
             turnProxy.start(clientProperties.getHostAddress());
         }

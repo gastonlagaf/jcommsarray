@@ -1,6 +1,6 @@
 package com.gastonlagaf.udp.test;
 
-import com.gastonlagaf.udp.client.discovery.InternetDiscovery;
+import com.gastonlagaf.udp.discovery.InternetDiscovery;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.test.protocol.PureProtocol;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
