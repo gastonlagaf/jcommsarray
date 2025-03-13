@@ -1,0 +1,5 @@
+group = rootProject.group
+
+dependencies {
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+}

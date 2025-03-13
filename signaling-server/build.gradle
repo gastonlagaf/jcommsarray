@@ -1,0 +1,12 @@
+apply plugin: 'java-library'
+
+group = rootProject.group
+
+dependencies {
+    implementation project(":signaling-model")
+
+    implementation "org.springframework:spring-messaging:6.1.3"
+    implementation "org.springframework:spring-websocket:6.1.3"
+
+    api "com.github.ben-manes.caffeine:caffeine:${caffeine_version}"
+}

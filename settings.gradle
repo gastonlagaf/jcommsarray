@@ -6,4 +6,7 @@ include 'turn-model'
 include 'turn-integrity'
 include 'udp-core'
 include 'bootstrap-tests'
+include 'signaling-model'
+include 'signaling-server'
+include 'signaling-server-test'
 
