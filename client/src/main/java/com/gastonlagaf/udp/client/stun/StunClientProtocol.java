@@ -6,6 +6,7 @@ import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
+import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
 import com.gastonlagaf.udp.turn.model.Message;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
@@ -16,12 +17,10 @@ import java.util.HexFormat;
 
 public class StunClientProtocol extends BaseClientProtocol<Message> {
 
-    private static final Integer WORKERS_COUNT = 1;
-
     private final CommunicationCodec<Message> codec = new MessageCodec();
 
-    public StunClientProtocol(ClientProperties clientProperties) {
-        super(NatBehaviour.NO_NAT, clientProperties, WORKERS_COUNT);
+    public StunClientProtocol(UdpSockets udpSockets, ClientProperties clientProperties) {
+        super(NatBehaviour.NO_NAT, clientProperties, udpSockets);
     }
 
     @Override

@@ -5,23 +5,24 @@ import com.gastonlagaf.udp.socket.UdpSockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class BaseUdpClient<T> implements UdpClient<T> {
 
-    protected final UdpSockets<T> udpSockets;
+    protected final UdpSockets udpSockets;
 
     protected final ClientProtocol<T> clientProtocol;
 
     protected final InetSocketAddress sourceAddress;
 
-    public BaseUdpClient(UdpSockets<T> udpSockets) {
+    public BaseUdpClient(UdpSockets udpSockets) {
         this(udpSockets, null, null);
     }
 
-    public BaseUdpClient(UdpSockets<T> udpSockets, ClientProtocol<T> clientProtocol, InetSocketAddress sourceAddress) {
+    public BaseUdpClient(UdpSockets udpSockets, ClientProtocol<T> clientProtocol, InetSocketAddress sourceAddress) {
         this.udpSockets = udpSockets;
         this.clientProtocol = clientProtocol;
         this.sourceAddress = sourceAddress;
@@ -35,7 +36,8 @@ public class BaseUdpClient<T> implements UdpClient<T> {
     @Override
     public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
         Optional.ofNullable(sourceAddress).orElseThrow(() -> new IllegalStateException("Source address not specified"));
-        return udpSockets.send(source, target, message);
+        ByteBuffer data = clientProtocol.serialize(message);
+        return udpSockets.send(source, target, data);
     }
 
     @Override
@@ -49,7 +51,8 @@ public class BaseUdpClient<T> implements UdpClient<T> {
         Optional.ofNullable(clientProtocol).orElseThrow(() -> new IllegalStateException("Protocol does not exist"));
 
         CompletableFuture<T> responseFuture = clientProtocol.awaitResult(message);
-        udpSockets.send(source, target, message);
+        ByteBuffer data = clientProtocol.serialize(message);
+        udpSockets.send(source, target, data);
 
         return responseFuture;
     }

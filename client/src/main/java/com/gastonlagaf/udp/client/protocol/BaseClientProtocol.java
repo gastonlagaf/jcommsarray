@@ -3,12 +3,14 @@ package com.gastonlagaf.udp.client.protocol;
 import com.gastonlagaf.udp.client.BaseUdpClient;
 import com.gastonlagaf.udp.client.PendingMessages;
 import com.gastonlagaf.udp.client.UdpClient;
+import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
 import com.gastonlagaf.udp.discovery.InternetDiscovery;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.StunClient;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
+import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
 
@@ -16,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -33,27 +37,34 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     protected final NatBehaviour natBehaviour;
 
-    protected final Integer threadCount;
-
-    protected UdpSockets<T> sockets;
+    protected UdpSockets sockets;
 
     protected UdpClient<T> client;
 
-    public BaseClientProtocol(Integer threads) {
-        this(null, null, threads);
+    protected SelectionKey selectionKey;
+
+    public BaseClientProtocol(UdpSockets sockets) {
+        this(null, null, sockets);
     }
 
-    public BaseClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, Integer threads) {
+    public BaseClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, UdpSockets sockets) {
         this.clientProperties = Optional.ofNullable(clientProperties).orElseGet(this::getClientProperties);
         this.natBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
-        this.threadCount = threads;
 
         this.pendingMessages = new PendingMessages<>(this.clientProperties.getSocketTimeout());
+        this.sockets = sockets;
     }
 
     protected abstract String getCorrelationId(T message);
 
     protected abstract UdpClient<T> createUdpClient(UdpClient<T> udpClient);
+
+    public abstract UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, T message);
+
+    public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, ByteBuffer buffer) {
+        T message = deserialize(receiverAddress, senderAddress, buffer);
+        return handle(receiverAddress, senderAddress, message);
+    }
 
     @Override
     public CompletableFuture<T> awaitResult(T message) {
@@ -79,8 +90,8 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
     }
 
     private NatBehaviour getNatBehaviour(ClientProperties clientProperties) {
-        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(clientProperties)) {
-            stunClientProtocol.start(clientProperties.getHostAddress());
+        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(this.sockets, clientProperties)) {
+            stunClientProtocol.start();
             StunClient stunClient = (StunClient) stunClientProtocol.getClient();
             return stunClient.checkMappingBehaviour();
         } catch (IOException e) {
@@ -89,37 +100,23 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
     }
 
     @Override
-    public void start(InetSocketAddress... addresses) {
+    public void start() {
         UdpClient<T> client;
         if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(this.natBehaviour)) {
-            this.sockets = new UdpSockets<>(threadCount);
             client = new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
-            sockets.start(this);
-            for (InetSocketAddress address : addresses) {
-                sockets.getRegistry().register(address);
-            }
+            this.selectionKey = sockets.getRegistry().register(clientProperties.getHostAddress(), this);
         } else {
-            this.sockets = null;
-            client = new TurnProxy<>(this.clientProperties, this);
+            TurnClientProtocol<T> turnClientProtocol = new TurnClientProtocol<>(sockets, this, clientProperties);
+            turnClientProtocol.start();
+            client = new TurnProxy<>(this,  turnClientProtocol);
         }
         this.client = createUdpClient(client);
-
-        if (client instanceof TurnProxy<T> turnProxy) {
-            turnProxy.start(clientProperties.getHostAddress());
-        }
     }
 
     @Override
     public void close() throws IOException {
         client.close();
-
-        Optional.ofNullable(sockets).ifPresent(it -> {
-            try {
-                it.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        Optional.ofNullable(selectionKey).ifPresent(it -> sockets.getRegistry().deregister(it));
     }
 
 }

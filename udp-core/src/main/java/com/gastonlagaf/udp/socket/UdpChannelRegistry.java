@@ -1,5 +1,6 @@
 package com.gastonlagaf.udp.socket;
 
+import com.gastonlagaf.udp.protocol.Protocol;
 import com.gastonlagaf.udp.socket.model.UdpSocketAttachment;
 import com.gastonlagaf.udp.socket.model.UdpWriteEntry;
 import lombok.AccessLevel;
@@ -43,43 +44,23 @@ public class UdpChannelRegistry implements ChannelRegistry {
     }
 
     @Override
-    public SelectionKey register(InetSocketAddress inetSocketAddress) {
+    public SelectionKey register(InetSocketAddress inetSocketAddress, Protocol<?> protocol) {
         String id = UUID.randomUUID().toString();
-        return register(id, inetSocketAddress, null);
+        return register(id, inetSocketAddress, protocol, null);
     }
 
-    @Override
-    public SelectionKey attach(Channel channel) {
-        if (!(channel instanceof DatagramChannel datagramChannel) || datagramChannel.isBlocking() || !datagramChannel.isOpen()) {
-            throw new IllegalArgumentException("Channel must be an instance of open non-blocking DatagramChannel");
-        }
-        Selector selector = getSelector();
-        SelectionKey key = registerChannel(datagramChannel, selector);
+    public SelectionKey switchProtocol(SelectionKey selectionKey, Protocol<?> protocol) {
+        UdpSocketAttachment attachment = (UdpSocketAttachment) selectionKey.attachment();
+        UdpSocketAttachment newAttachment = new UdpSocketAttachment(attachment.getId(), attachment.getSocketAddress(), protocol, attachment.getCloseListener());
 
-        String id = UUID.randomUUID().toString();
-        try {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) datagramChannel.getLocalAddress();
-            UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, null);
-            key.attach(attachment);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        selectionKey.attach(newAttachment);
 
-        return key;
+        return selectionKey;
     }
 
     @Override
     public void deregister(SelectionKey key) {
         deregister(key, true);
-    }
-
-    @Override
-    public Channel detach(SelectionKey key) {
-        Channel result = deregister(key, false);
-        if (null == result) {
-            throw new IllegalStateException("Selection key is not valid");
-        }
-        return result;
     }
 
     @Override
@@ -95,13 +76,13 @@ public class UdpChannelRegistry implements ChannelRegistry {
         }
     }
 
-    public SelectionKey register(String id, InetSocketAddress inetSocketAddress, BiConsumer<String, InetSocketAddress> closeListener) {
+    public SelectionKey register(String id, InetSocketAddress inetSocketAddress, Protocol<?> protocol, BiConsumer<String, InetSocketAddress> closeListener) {
         String queueMapKey = inetSocketAddress.getHostName() + ":" + inetSocketAddress.getPort();
         if (writeQueueMap.containsKey(queueMapKey)) {
             throw new IllegalArgumentException("Address already bound: " + inetSocketAddress);
         }
 
-        UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, closeListener);
+        UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, protocol, closeListener);
 
         DatagramChannel channel = create(inetSocketAddress);
 

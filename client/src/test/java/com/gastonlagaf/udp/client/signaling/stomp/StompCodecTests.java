@@ -7,6 +7,7 @@ import com.gastonlagaf.signaling.model.AddressCandidate;
 import com.gastonlagaf.signaling.model.InviteEvent;
 import com.gastonlagaf.signaling.model.SignalingEvent;
 import com.gastonlagaf.udp.client.signaling.stomp.model.StompMessage;
+import com.gastonlagaf.udp.client.signaling.stomp.model.StompMessageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +47,7 @@ public class StompCodecTests {
     @Test
     void testEncode() {
         StompMessage<InviteEvent> stompMessage = new StompMessage<>(
-                "SEND",
+                StompMessageType.SEND,
                 Map.of("in", "the", "bobs", "office"),
                 new InviteEvent("1", "2", List.of(
                         new AddressCandidate(1, InetSocketAddress.createUnresolved("127.0.0.1", 2022)),

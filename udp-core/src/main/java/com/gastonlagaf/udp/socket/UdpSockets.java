@@ -17,6 +17,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 @Slf4j
-public class UdpSockets<T> implements Closeable {
+public class UdpSockets implements Closeable {
 
     @Getter
     private final UdpChannelRegistry registry;
@@ -33,8 +34,6 @@ public class UdpSockets<T> implements Closeable {
     private final ExecutorService workerThreads;
 
     private final List<WorkerThread> workers;
-
-    private Protocol<T> protocol;
 
     public UdpSockets(Integer workers) {
         this(new UdpChannelRegistry(workers));
@@ -57,21 +56,12 @@ public class UdpSockets<T> implements Closeable {
         log.info("Sockets has been shut down");
     }
 
-    public void start(Protocol<T> protocol) {
-        if (null != this.protocol) {
-            return;
-        }
+    public void start() {
         if (workerThreads.isShutdown()) {
             throw new IllegalArgumentException("Cannot start again");
         }
-        this.protocol = protocol;
         this.workers.forEach(workerThreads::submit);
         log.info("Selector started");
-    }
-
-    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
-        ByteBuffer data = protocol.serialize(message);
-        return send(source, target, data);
     }
 
     public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, ByteBuffer data) {
@@ -143,8 +133,8 @@ public class UdpSockets<T> implements Closeable {
                 this.buffer.flip();
                 InetSocketAddress receiverAddress = (InetSocketAddress) channel.socket().getLocalSocketAddress();
 
-                T packet = protocol.deserialize(receiverAddress, senderAddress, this.buffer);
-                UdpPacketHandlerResult result = protocol.handle(receiverAddress, senderAddress, packet);
+                Protocol<?> protocol = attachment.getProtocol();
+                UdpPacketHandlerResult result = protocol.handle(receiverAddress, senderAddress, this.buffer);
                 if (null != result && !attachment.getScheduleClose()) {
                     if (null != result.getCloseChannel() && result.getCloseChannel()) {
                         attachment.setScheduleClose(true);
@@ -158,8 +148,8 @@ public class UdpSockets<T> implements Closeable {
         }
 
         private void processWrite(SelectionKey selectionKey, DatagramChannel channel, UdpSocketAttachment attachment) {
+            UdpWriteEntry writeEntry = attachment.getWritingQueue().poll();
             try {
-                UdpWriteEntry writeEntry = attachment.getWritingQueue().poll();
                 if (null == writeEntry) {
                     if (attachment.getScheduleClose()) {
                         InetSocketAddress socketAddress = (InetSocketAddress) channel.getLocalAddress();
@@ -175,6 +165,7 @@ public class UdpSockets<T> implements Closeable {
                 writeEntry.getFuture().complete(null);
             } catch (Exception e) {
                 log.error("Failed to process write", e);
+                Optional.ofNullable(writeEntry).ifPresent(it -> it.getFuture().completeExceptionally(e));
             } finally {
                 this.buffer.clear();
             }

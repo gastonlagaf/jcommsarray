@@ -76,7 +76,7 @@ public class CandidateSpotter {
         if (null == clientProperties.getStunAddress()) {
             return List.of();
         }
-        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(clientProperties)) {
+        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(null, clientProperties)) {
             InetSocketAddress socketAddress = ((UdpStunClient) stunClientProtocol.getClient()).getReflexiveAddress();
             Candidate candidate = new Candidate(
                     socketAddress, CandidateType.PEER_REFLEXIVE, localPreferenceCounter.getAndDecrement(),
@@ -92,7 +92,7 @@ public class CandidateSpotter {
         if (null == clientProperties.getTurnAddress()) {
             return List.of();
         }
-        IceProtocol protocol = new IceProtocol(iceProperties.getRole(), clientProperties, CandidateType.SERVER_REFLEXIVE);
+        IceProtocol protocol = null;
         InetSocketAddress proxyAddress = ((TurnProxy<Message>)protocol.getClient()).getProxyAddress();
         Candidate candidate = new Candidate(
                 proxyAddress, CandidateType.SERVER_REFLEXIVE, localPreferenceCounter.getAndDecrement(),
@@ -120,9 +120,9 @@ public class CandidateSpotter {
                     clientProperties.getTurnAddress(),
                     clientProperties.getSocketTimeout()
             );
-            IceProtocol protocol = new IceProtocol(iceProperties.getRole(), localProperties, type);
+            IceProtocol protocol = null;
             try {
-                protocol.start(localProperties.getHostAddress());
+//                protocol.start(localProperties.getHostAddress());
             } catch (Exception ex) {
                 continue;
             }

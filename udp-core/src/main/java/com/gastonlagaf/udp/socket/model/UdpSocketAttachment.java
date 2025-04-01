@@ -1,5 +1,6 @@
 package com.gastonlagaf.udp.socket.model;
 
+import com.gastonlagaf.udp.protocol.Protocol;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -16,6 +17,8 @@ public class UdpSocketAttachment {
     private final String id;
 
     private final InetSocketAddress socketAddress;
+
+    private final Protocol<?> protocol;
 
     private final BiConsumer<String, InetSocketAddress> closeListener;
 

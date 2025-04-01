@@ -23,10 +23,12 @@ public class IceProperties {
     private final Integer maxPort;
 
     public IceProperties(IceRole role, Integer componentId, Integer minPort, Integer maxPort) {
-        this(role, Duration.ofMillis(50L), componentId, minPort, maxPort);
+        this(null, null, role, Duration.ofMillis(50L), componentId, minPort, maxPort);
     }
 
-    public IceProperties(IceRole role, Duration ta, Integer componentId, Integer minPort, Integer maxPort) {
+    public IceProperties(String sourceContactId, String targetContactId, IceRole role, Duration ta, Integer componentId, Integer minPort, Integer maxPort) {
+        this.sourceContactId = sourceContactId;
+        this.targetContactId = targetContactId;
         this.role = role;
         this.ta = ta;
         this.componentId = componentId;

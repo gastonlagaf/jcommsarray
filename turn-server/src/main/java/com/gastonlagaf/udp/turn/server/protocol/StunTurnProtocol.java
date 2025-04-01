@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -36,19 +38,21 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
 
     private final Map<String, TurnSessions> turnSessionsMap;
 
-    private final UdpSockets<ContexedMessage> sockets;
+    private final UdpSockets sockets;
 
-    public StunTurnProtocol(StunServerProperties properties) {
+    private final Collection<InetSocketAddress> hostAddresses;
+
+    public StunTurnProtocol(UdpSockets udpSockets, StunServerProperties properties) {
         this.turnSessionsMap = properties.getEnableTurn()
                 ? properties.getIpAddresses().stream().collect(Collectors.toMap(Function.identity(), it -> new TurnSessions()))
                 : null;
 
-        UdpChannelRegistry registry = new UdpChannelRegistry(properties.getWorkersCount());
+        UdpChannelRegistry registry = udpSockets.getRegistry();
         ServersDispatcher serversDispatcher = new ServersDispatcher(properties.getServers());
 
         this.handlers = Map.of(
                 MessageType.BINDING_REQUEST, new BindingRequestMessageHandler(serversDispatcher),
-                MessageType.ALLOCATE, new AllocateMessageHandler(turnSessionsMap, null, registry),
+                MessageType.ALLOCATE, new AllocateMessageHandler(turnSessionsMap, null, registry, this),
                 MessageType.REFRESH, new RefreshMessageHandler(turnSessionsMap),
                 MessageType.CREATE_PERMISSION, new CreatePermissionRequestHandler(),
                 MessageType.SEND, new SendMessageHandler(),
@@ -58,8 +62,8 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
                 MessageType.INBOUND_CHANNEL_DATA, new InboundChannelDataMessageHandler()
         );
 
-        this.sockets = new UdpSockets<>(registry);
-        this.sockets.start(this);
+        this.sockets = udpSockets;
+        this.hostAddresses = properties.getServers().values();
     }
 
     @Override
@@ -80,6 +84,11 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
     }
 
     @Override
+    public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, ByteBuffer buffer) {
+        ContexedMessage message = deserialize(receiverAddress, senderAddress, buffer);
+        return handle(receiverAddress, senderAddress, message);
+    }
+
     public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, ContexedMessage packet) {
         try {
             StunResponse response = handlers.get(packet.getHeader().getType()).handle(receiverAddress, senderAddress, packet);
@@ -112,14 +121,8 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
     }
 
     @Override
-    public void start(InetSocketAddress... addresses) {
-        sockets.start(this);
-        if (null == addresses) {
-            return;
-        }
-        for (InetSocketAddress address : addresses) {
-            this.sockets.getRegistry().register(address);
-        }
+    public void start() {
+        this.hostAddresses.forEach(it -> this.sockets.getRegistry().register(it, this));
     }
 
     @Override

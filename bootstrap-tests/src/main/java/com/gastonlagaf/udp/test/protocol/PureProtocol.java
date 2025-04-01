@@ -4,6 +4,7 @@ import com.gastonlagaf.udp.client.UdpClient;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
+import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,12 +16,8 @@ public class PureProtocol extends BaseClientProtocol<String> {
 
     private final Boolean shouldReply;
 
-    public PureProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties) {
-        this(natBehaviour, clientProperties, true);
-    }
-
-    public PureProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, Boolean shouldReply) {
-        super(natBehaviour, clientProperties, 1);
+    public PureProtocol(UdpSockets udpSockets, NatBehaviour natBehaviour, ClientProperties clientProperties, Boolean shouldReply) {
+        super(natBehaviour, clientProperties, udpSockets);
         this.shouldReply = shouldReply;
     }
 

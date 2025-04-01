@@ -5,9 +5,10 @@ import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.client.turn.client.impl.TurnUdpClient;
+import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
-import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
+import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
 import com.gastonlagaf.udp.turn.model.*;
 
@@ -22,8 +23,6 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     private static final Integer REQUIRED_HOST_ADDRESS_COUNT = 1;
 
-    private static final Integer WORKERS_COUNT = 1;
-
     private static final Set<MessageType> RESPONSE_MESSAGE_TYPES = Set.of(
             MessageType.BINDING_REQUEST,
             MessageType.CHANNEL_BIND,
@@ -34,12 +33,12 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     private final CommunicationCodec<Message> codec = new MessageCodec();
 
-    private final ClientProtocol<T> targetProtocol;
+    private final BaseClientProtocol<T> targetProtocol;
 
     private final Map<Integer, InetSocketAddress> channelBindings;
 
-    public TurnClientProtocol(ClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
-        super(NatBehaviour.NO_NAT, clientProperties, WORKERS_COUNT);
+    public TurnClientProtocol(UdpSockets udpSockets, BaseClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
+        super(NatBehaviour.NO_NAT, clientProperties, udpSockets);
         this.targetProtocol = targetProtocol;
         this.channelBindings = new HashMap<>();
     }
@@ -82,12 +81,9 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
     }
 
     @Override
-    public void start(InetSocketAddress... addresses) {
-        if (!REQUIRED_HOST_ADDRESS_COUNT.equals(addresses.length)) {
-            throw new IllegalArgumentException("Only one host address allowed");
-        }
-        super.start(addresses);
-        ((TurnClient) client).start(clientProperties.getTurnAddress());
+    public void start() {
+        super.start();
+        ((TurnClient)this.getClient()).start(clientProperties.getTurnAddress());
     }
 
     private InetSocketAddress extractSender(Message message) {

@@ -20,11 +20,12 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     private final Map<InetSocketAddress, Integer> channelBindings = new ConcurrentHashMap<>();
 
-    private TurnClient turnClient;
+    private final TurnClient turnClient;
 
-    public TurnProxy(ClientProperties properties, ClientProtocol<T> targetProtocol) {
-        this.turnClientProtocol = new TurnClientProtocol<>(targetProtocol, properties);
+    public TurnProxy(ClientProtocol<T> targetProtocol, TurnClientProtocol<T> turnClientProtocol) {
+        this.turnClientProtocol = turnClientProtocol;
         this.targetProtocol = targetProtocol;
+        this.turnClient = (TurnClient) turnClientProtocol.getClient();
     }
 
     @Override
@@ -53,11 +54,6 @@ public class TurnProxy<T> implements UdpClient<T> {
 
     public InetSocketAddress getProxyAddress() {
         return turnClient.getProxyAddress();
-    }
-
-    public void start(InetSocketAddress... addresses) {
-        this.turnClientProtocol.start(addresses);
-        this.turnClient = (TurnClient) turnClientProtocol.getClient();
     }
 
     @Override

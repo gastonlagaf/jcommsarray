@@ -7,6 +7,7 @@ import com.gastonlagaf.udp.turn.model.*;
 import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
 import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
 import com.gastonlagaf.udp.turn.server.model.StunResponse;
+import com.gastonlagaf.udp.turn.server.protocol.StunTurnProtocol;
 import com.gastonlagaf.udp.turn.server.turn.TurnSession;
 import com.gastonlagaf.udp.turn.server.turn.TurnSessions;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,8 @@ public class AllocateMessageHandler implements StunMessageHandler {
     private final IntegrityVerifier integrityVerifier;
 
     private final ChannelRegistry channelRegistry;
+
+    private final StunTurnProtocol stunTurnProtocol;
 
     @Override
     public MessageType getMessageType() {
@@ -50,7 +53,7 @@ public class AllocateMessageHandler implements StunMessageHandler {
 
         Integer port = turnSessions.allocatePort();
         InetSocketAddress turnServerAddress = new InetSocketAddress(serverAddress.getHostName(), port);
-        SelectionKey key = channelRegistry.register(turnServerAddress);
+        SelectionKey key = channelRegistry.register(turnServerAddress, stunTurnProtocol);
         TurnSession turnSession = new TurnSession(clientAddress, turnServerAddress, key);
         turnSessions.put(turnSession, Protocol.UDP);
 

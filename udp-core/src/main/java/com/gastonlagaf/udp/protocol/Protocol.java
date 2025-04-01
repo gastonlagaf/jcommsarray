@@ -12,8 +12,8 @@ public interface Protocol<T> extends Closeable {
 
     ByteBuffer serialize(T packet);
 
-    UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, T packet);
+    UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, ByteBuffer buffer);
 
-    void start(InetSocketAddress... addresses);
+    void start();
 
 }

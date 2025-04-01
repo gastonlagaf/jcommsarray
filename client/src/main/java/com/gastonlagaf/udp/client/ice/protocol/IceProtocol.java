@@ -10,6 +10,7 @@ import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
+import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
 import com.gastonlagaf.udp.turn.model.Message;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
@@ -31,11 +32,11 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
     private final List<Candidate> opponentCandidates = new ArrayList<>();
 
-    public IceProtocol(ClientProperties clientProperties, CandidateSpotter candidateSpotter, CandidateTransferOperator candidateTransferOperator) {
+    public IceProtocol(UdpSockets udpSockets, ClientProperties clientProperties, CandidateSpotter candidateSpotter, CandidateTransferOperator candidateTransferOperator) {
         super(
                 NatBehaviour.NO_NAT,
                 clientProperties,
-                1
+                udpSockets
         );
         this.candidateSpotter = candidateSpotter;
         this.candidateTransferOperator = candidateTransferOperator;
