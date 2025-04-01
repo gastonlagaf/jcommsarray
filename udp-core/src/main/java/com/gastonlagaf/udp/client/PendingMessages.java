@@ -8,6 +8,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public class PendingMessages<T> {
@@ -31,6 +32,12 @@ public class PendingMessages<T> {
         CompletableFuture<T> result = new CompletableFuture<>();
         messagesAwaitMap.put(txId, result);
         return result;
+    }
+
+    public Boolean fail(String txId, String message) {
+        return Optional.ofNullable(messagesAwaitMap.asMap().remove(txId))
+                .map(it -> it.completeExceptionally(new RuntimeException(message)))
+                .orElse(false);
     }
 
     public Boolean complete(String txId, T message) {

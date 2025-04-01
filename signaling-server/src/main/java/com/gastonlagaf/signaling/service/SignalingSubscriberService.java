@@ -1,5 +1,6 @@
 package com.gastonlagaf.signaling.service;
 
+import com.gastonlagaf.signaling.model.SignalingEvent;
 import com.gastonlagaf.signaling.model.SignalingSubscriber;
 
 import java.util.Optional;
@@ -11,5 +12,7 @@ public interface SignalingSubscriberService {
     SignalingSubscriber save(SignalingSubscriber subscriber);
 
     Optional<SignalingSubscriber> remove(String id);
+
+    void send(String subscriberId, SignalingEvent event);
 
 }

@@ -28,14 +28,14 @@ public class TurnProxy<T> implements UdpClient<T> {
     }
 
     @Override
-    public void send(InetSocketAddress target, T message) {
+    public CompletableFuture<Void> send(InetSocketAddress target, T message) {
         Integer channelNumber = channelBindings.computeIfAbsent(target, turnClient::createChannel);
         byte[] data = targetProtocol.serialize(message).array();
-        turnClient.send(channelNumber, data);
+        return turnClient.send(channelNumber, data);
     }
 
     @Override
-    public void send(InetSocketAddress source, InetSocketAddress target, T message) {
+    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
         throw new UnsupportedOperationException();
     }
 
@@ -49,6 +49,10 @@ public class TurnProxy<T> implements UdpClient<T> {
     @Override
     public CompletableFuture<T> sendAndReceive(InetSocketAddress source, InetSocketAddress target, T message) {
         throw new UnsupportedOperationException();
+    }
+
+    public InetSocketAddress getProxyAddress() {
+        return turnClient.getProxyAddress();
     }
 
     public void start(InetSocketAddress... addresses) {

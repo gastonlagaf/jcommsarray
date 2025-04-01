@@ -13,13 +13,13 @@ public abstract class UdpClientDelegate<T> implements UdpClient<T> {
     }
 
     @Override
-    public void send(InetSocketAddress target, T message) {
-        delegate.send(target, message);
+    public CompletableFuture<Void> send(InetSocketAddress target, T message) {
+        return delegate.send(target, message);
     }
 
     @Override
-    public void send(InetSocketAddress source, InetSocketAddress target, T message) {
-        delegate.send(source, target, message);
+    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
+        return delegate.send(source, target, message);
     }
 
     @Override

@@ -1,50 +1,62 @@
 package com.gastonlagaf.signaling.websocket;
 
-import com.gastonlagaf.signaling.service.SignalingSubscriberService;
-import com.gastonlagaf.signaling.websocket.model.InviteRequest;
+import com.gastonlagaf.signaling.model.CancelEvent;
+import com.gastonlagaf.signaling.model.ClosingEvent;
+import com.gastonlagaf.signaling.model.InviteEvent;
+import com.gastonlagaf.signaling.service.SessionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessageSendingOperations;
-import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 
 @Controller
+@MessageMapping("/sessions")
 @RequiredArgsConstructor
 public class SessionHandler {
 
-    private final SignalingSubscriberService service;
+    private final SessionService service;
 
-    private final SimpMessageSendingOperations messagingTemplate;
-
-    @SubscribeMapping
-    public void testSubscribe(MessageHeaders headers) {
-        System.out.println();
+    @MessageMapping("/create")
+    public void create(Principal principal) {
+        service.create(principal.getName());
     }
 
-    @MessageMapping("/test")
-    public void test(MessageHeaders headers) {
-        System.out.println();
-        messagingTemplate.convertAndSend("/ws/events/op", "Nu Zdarova");
+    @MessageMapping("/{id}/destroy")
+    public void destroy(Principal principal, @DestinationVariable("id") String id) {
+        service.destroy(id, principal.getName());
     }
 
-    @MessageMapping("/sessions/create")
-    public void createSession(Principal principal) {
-        System.out.println();
+    @MessageMapping("/{id}/invite")
+    public void invite(Principal principal, @DestinationVariable("id") String id, @Payload InviteEvent event) {
+        service.invite(id, principal.getName(), event.getUserId());
     }
 
-    @MessageMapping("/sessions/{id}/destroy")
-    public void destroySession(Principal principal) {
-
+    @MessageMapping("/{id}/answer")
+    public void answer(Principal principal, @DestinationVariable("id") String id) {
+        service.answer(id, principal.getName());
     }
 
-    @MessageMapping("/sessions/{id}/invite")
-    public void invite(Principal principal, @Payload InviteRequest inviteRequest) {
+    @MessageMapping("/{id}/reject")
+    public void reject(Principal principal, @DestinationVariable("id") String id) {
+        service.reject(id, principal.getName());
+    }
 
+    @MessageMapping("/{id}/acknowledge")
+    public void acknowledge(Principal principal, @DestinationVariable("id") String id) {
+        service.acknowledge(id, principal.getName());
+    }
+
+    @MessageMapping("/{id}/remove")
+    public void removeParticipant(Principal principal, @DestinationVariable("id") String id, @Payload ClosingEvent event) {
+        service.removeParticipant(id, event.getUserId());
+    }
+
+    @MessageMapping("/{id}/leave")
+    public void leave(Principal principal, @DestinationVariable("id") String id) {
+        service.leave(id, principal.getName());
     }
 
 }

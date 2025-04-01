@@ -22,9 +22,12 @@ import lombok.Setter;
         @JsonSubTypes.Type(value = DeregisterEvent.class, name = "DEREGISTER"),
         @JsonSubTypes.Type(value = InviteEvent.class, name = "INVITE"),
         @JsonSubTypes.Type(value = CancelEvent.class, name = "CANCEL"),
-        @JsonSubTypes.Type(value = OkEvent.class, name = "OK"),
+        @JsonSubTypes.Type(value = InviteAnsweredEvent.class, name = "INVITE_ANSWERED"),
         @JsonSubTypes.Type(value = AcknowledgedEvent.class, name = "ACKNOWLEDGED"),
-        @JsonSubTypes.Type(value = ClosingEvent.class, name = "CLOSING")
+        @JsonSubTypes.Type(value = ClosingEvent.class, name = "CLOSING"),
+        @JsonSubTypes.Type(value = ClosedEvent.class, name = "CLOSED"),
+        @JsonSubTypes.Type(value = CreateSessionEvent.class, name = "CREATE_SESSION"),
+        @JsonSubTypes.Type(value = SessionCreatedEvent.class, name = "SESSION_CREATED")
 })
 public abstract class SignalingEvent {
 

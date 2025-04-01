@@ -9,10 +9,7 @@ import com.gastonlagaf.udp.turn.model.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnClient {
@@ -89,7 +86,7 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
     }
 
     @Override
-    public void send(Integer channelNumber, byte[] data) {
+    public CompletableFuture<Void> send(Integer channelNumber, byte[] data) {
         assertTurnSessionStarted();
         if (!channelBindings.containsKey(channelNumber)) {
             throw new StunProtocolException("Binding not registered for channel " + channelNumber, ErrorCode.BAD_REQUEST.getCode());
@@ -101,11 +98,11 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
         );
 
         Message message = new Message(messageHeader, attributes);
-        send(this.targetAddress, message);
+        return send(this.targetAddress, message);
     }
 
     @Override
-    public void send(InetSocketAddress receiver, byte[] data) {
+    public CompletableFuture<Void> send(InetSocketAddress receiver, byte[] data) {
         assertTurnSessionStarted();
         if (!bindings.contains(receiver)) {
             throw new StunProtocolException("Binding not registered for address " + receiver.toString(), ErrorCode.BAD_REQUEST.getCode());
@@ -117,7 +114,7 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
         );
 
         Message message = new Message(messageHeader, attributes);
-        send(this.sourceAddress, this.targetAddress, message);
+        return send(this.sourceAddress, this.targetAddress, message);
     }
 
     public InetSocketAddress start(InetSocketAddress turnAddress) {
@@ -131,6 +128,11 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
         this.targetAddress = response.getAttributes()
                 .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
                 .toInetSocketAddress();
+        return this.targetAddress;
+    }
+
+    @Override
+    public InetSocketAddress getProxyAddress() {
         return this.targetAddress;
     }
 

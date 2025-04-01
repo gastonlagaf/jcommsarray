@@ -9,12 +9,8 @@ public interface SessionDatastore {
 
     Optional<Session> findById(String id);
 
-    List<Session> findAllByHostId(String hostId);
-
     Session save(Session session);
 
     Optional<Session> remove(Session session);
-
-    List<Session> removeAllByHostId(String hostId);
 
 }

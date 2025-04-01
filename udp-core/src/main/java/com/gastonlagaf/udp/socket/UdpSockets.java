@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
@@ -68,26 +69,29 @@ public class UdpSockets<T> implements Closeable {
         log.info("Selector started");
     }
 
-    public void send(InetSocketAddress source, InetSocketAddress target, T message) {
+    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
         ByteBuffer data = protocol.serialize(message);
-        send(source, target, data);
+        return send(source, target, data);
     }
 
-    public void send(InetSocketAddress source, InetSocketAddress target, ByteBuffer data) {
+    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, ByteBuffer data) {
         log.info("Sending data from {} to {}", source, target);
-        UdpWriteEntry writeEntry = new UdpWriteEntry(target, data);
         String queueMapKey = source.getHostName() + ":" + source.getPort();
         BlockingQueue<UdpWriteEntry> queue = registry.getWriteQueueMap().get(queueMapKey);
         if (null == queue) {
             log.info("Skipping send");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         try {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            UdpWriteEntry writeEntry = new UdpWriteEntry(target, data, future);
             queue.put(writeEntry);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(e.getMessage());
+            return CompletableFuture.failedFuture(e);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     @RequiredArgsConstructor
@@ -168,6 +172,7 @@ public class UdpSockets<T> implements Closeable {
                 this.buffer.flip();
                 channel.send(this.buffer, writeEntry.getTarget());
                 this.buffer.clear();
+                writeEntry.getFuture().complete(null);
             } catch (Exception e) {
                 log.error("Failed to process write", e);
             } finally {

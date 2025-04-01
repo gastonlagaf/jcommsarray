@@ -8,12 +8,18 @@ public interface SessionService {
 
     Session create(String hostId);
 
-    Session destroy(String id);
+    Session destroy(String id, String hostId);
 
-    List<Session> destroyAllByHostId(String hostId);
+    Session invite(String id, String hostId, String subscriberId);
 
-    Session invite(String id, String subscriberId);
+    Session answer(String id, String subscriberId);
+
+    Session reject(String id, String subscriberId);
+
+    Session acknowledge(String id, String subscriberId);
 
     Session removeParticipant(String id, String subscriberId);
+
+    Session leave(String id, String subscriberId);
 
 }

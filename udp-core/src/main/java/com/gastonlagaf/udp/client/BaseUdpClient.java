@@ -28,14 +28,14 @@ public class BaseUdpClient<T> implements UdpClient<T> {
     }
 
     @Override
-    public void send(InetSocketAddress target, T message) {
-        send(this.sourceAddress, target, message);
+    public CompletableFuture<Void> send(InetSocketAddress target, T message) {
+        return send(this.sourceAddress, target, message);
     }
 
     @Override
-    public void send(InetSocketAddress source, InetSocketAddress target, T message) {
+    public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
         Optional.ofNullable(sourceAddress).orElseThrow(() -> new IllegalStateException("Source address not specified"));
-        udpSockets.send(source, target, message);
+        return udpSockets.send(source, target, message);
     }
 
     @Override

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -17,6 +18,6 @@ public class Session {
 
     private String hostId;
 
-    private List<String> participantIds;
+    private Set<String> participantIds;
 
 }
