@@ -15,6 +15,8 @@ public class AddressCandidate {
 
     private Integer priority;
 
+    private String type;
+
     private InetSocketAddress value;
 
 }

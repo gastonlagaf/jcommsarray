@@ -1,54 +1,71 @@
 package com.gastonlagaf.udp.client.ice.candidate;
 
 import com.gastonlagaf.udp.client.ice.exception.IceFailureException;
-import com.gastonlagaf.udp.client.ice.model.Candidate;
-import com.gastonlagaf.udp.client.ice.model.CandidateType;
-import com.gastonlagaf.udp.client.ice.model.IceProperties;
+import com.gastonlagaf.udp.client.ice.model.*;
 import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
+import com.gastonlagaf.udp.client.stun.client.StunClient;
 import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
+import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
-import com.gastonlagaf.udp.turn.model.Message;
+import com.gastonlagaf.udp.protocol.ClientProtocol;
+import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.turn.model.NatBehaviour;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
+import java.nio.channels.SelectionKey;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class CandidateSpotter {
+
+    private final IceSession iceSession;
 
     private final IceProperties iceProperties;
 
     private final ClientProperties clientProperties;
 
+    private final UdpSockets udpSockets;
+
     private final AtomicInteger portCounter;
+
+    private final CompletableFuture<IceConnectResult> future;
 
     private final AtomicInteger localPreferenceCounter = new AtomicInteger(65000);
 
-    public CandidateSpotter(IceProperties iceProperties, ClientProperties clientProperties) {
+    public CandidateSpotter(UdpSockets udpSockets, IceSession iceSession, IceProperties iceProperties, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+        this.iceSession = iceSession;
         this.iceProperties = iceProperties;
         this.clientProperties = clientProperties;
+        this.udpSockets = udpSockets;
+        this.future = future;
         this.portCounter = new AtomicInteger(iceProperties.getMinPort());
     }
 
-    public List<Candidate> search() {
+    public SortedSet<Candidate> search() {
         List<Candidate> hostCandidates = searchHostCandidates();
 
-        List<Candidate> result = new ArrayList<>(hostCandidates);
+        TreeSet<Candidate> result = new TreeSet<>();
+        result.addAll(hostCandidates);
 
         if (result.isEmpty()) {
             throw new IceFailureException("No candidates found");
         }
 
-        List<Candidate> peerReflexiveCandidates = searchPeerReflexiveCandidates(result.getFirst().getProtocol());
+        Candidate localCandidate = result.first();
+
+        List<Candidate> peerReflexiveCandidates = searchPeerReflexiveCandidates(localCandidate);
         result.addAll(peerReflexiveCandidates);
 
-        List<Candidate> serverReflexiveCandidates = searchServerReflexiveCandidates();
+        List<Candidate> serverReflexiveCandidates = searchServerReflexiveCandidates(localCandidate);
         result.addAll(serverReflexiveCandidates);
 
         return result;
@@ -72,31 +89,27 @@ public class CandidateSpotter {
                 .toList();
     }
 
-    private List<Candidate> searchPeerReflexiveCandidates(IceProtocol protocol) {
+    private List<Candidate> searchPeerReflexiveCandidates(Candidate localCandidate) {
         if (null == clientProperties.getStunAddress()) {
             return List.of();
         }
-        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(null, clientProperties)) {
-            InetSocketAddress socketAddress = ((UdpStunClient) stunClientProtocol.getClient()).getReflexiveAddress();
-            Candidate candidate = new Candidate(
-                    socketAddress, CandidateType.PEER_REFLEXIVE, localPreferenceCounter.getAndDecrement(),
-                    iceProperties.getComponentId(), protocol
-            );
-            return List.of(candidate);
-        } catch (IOException ex) {
-            return List.of();
-        }
+        Candidate candidate = bind(
+                localCandidate.getHostAddress().getAddress(),
+                CandidateType.PEER_REFLEXIVE,
+                localPreferenceCounter.getAndDecrement()
+        );
+        return List.of(candidate);
     }
 
-    private List<Candidate> searchServerReflexiveCandidates() {
+    private List<Candidate> searchServerReflexiveCandidates(Candidate localCandidate) {
         if (null == clientProperties.getTurnAddress()) {
             return List.of();
         }
-        IceProtocol protocol = null;
-        InetSocketAddress proxyAddress = ((TurnProxy<Message>)protocol.getClient()).getProxyAddress();
-        Candidate candidate = new Candidate(
-                proxyAddress, CandidateType.SERVER_REFLEXIVE, localPreferenceCounter.getAndDecrement(),
-                iceProperties.getComponentId(), protocol
+
+        Candidate candidate = bind(
+                localCandidate.getHostAddress().getAddress(),
+                CandidateType.SERVER_REFLEXIVE,
+                localPreferenceCounter.getAndDecrement()
         );
         return List.of(candidate);
     }
@@ -106,32 +119,73 @@ public class CandidateSpotter {
             return List.of();
         }
         return networkInterface.inetAddresses()
-                .filter(it -> it instanceof Inet4Address && it.isLinkLocalAddress())
+                .filter(it -> it instanceof Inet4Address && !it.isLinkLocalAddress())
                 .collect(Collectors.toList());
     }
 
     private Candidate bind(InetAddress inetAddress, CandidateType type, Integer localPreference) {
         while (portCounter.get() < iceProperties.getMaxPort()) {
-            Integer port = portCounter.getAndIncrement();
-            ClientProperties localProperties = new ClientProperties(
-                    new InetSocketAddress(inetAddress, port),
-                    null,
-                    clientProperties.getStunAddress(),
-                    clientProperties.getTurnAddress(),
-                    clientProperties.getSocketTimeout()
-            );
-            IceProtocol protocol = null;
             try {
-//                protocol.start(localProperties.getHostAddress());
+                return !CandidateType.PEER_REFLEXIVE.equals(type)
+                        ? tryRegister(inetAddress, type, localPreference)
+                        : tryRegisterPeerReflexive(inetAddress, localPreference);
             } catch (Exception ex) {
-                continue;
+                log.error("", ex);
             }
-            return new Candidate(
-                    clientProperties.getHostAddress(), type, localPreference,
-                    iceProperties.getComponentId(), protocol
-            );
         }
         throw new IceFailureException("Depleted component ports");
+    }
+
+    private Candidate tryRegisterPeerReflexive(InetAddress inetAddress, Integer localPreference) {
+        int port = portCounter.getAndIncrement();
+        ClientProperties localProperties = new ClientProperties(
+                new InetSocketAddress(inetAddress, port),
+                null,
+                clientProperties.getStunAddress(),
+                clientProperties.getTurnAddress(),
+                clientProperties.getSocketTimeout()
+        );
+        InetSocketAddress actualAddress;
+        try (StunClientProtocol stunClientProtocol = new StunClientProtocol(udpSockets, localProperties)) {
+            stunClientProtocol.start();
+            actualAddress = ((StunClient) stunClientProtocol.getClient()).getReflexiveAddress();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+
+        IceProtocol iceProtocol = new IceProtocol(udpSockets, iceSession, localProperties, future);
+        iceProtocol.start();
+
+        return new Candidate(
+                localProperties.getHostAddress(), actualAddress, CandidateType.PEER_REFLEXIVE, localPreference,
+                iceProperties.getComponentId(), iceProtocol
+        );
+    }
+
+    private Candidate tryRegister(InetAddress inetAddress, CandidateType type, Integer localPreference) {
+        int port = portCounter.getAndIncrement();
+        ClientProperties localProperties = new ClientProperties(
+                new InetSocketAddress(inetAddress, port),
+                null,
+                clientProperties.getStunAddress(),
+                clientProperties.getTurnAddress(),
+                clientProperties.getSocketTimeout()
+        );
+        NatBehaviour natBehaviour = CandidateType.SERVER_REFLEXIVE.equals(type)
+                ? NatBehaviour.ADDRESS_AND_PORT_DEPENDENT
+                : NatBehaviour.NO_NAT;
+
+        IceProtocol iceProtocol = new IceProtocol(natBehaviour, iceSession, udpSockets, localProperties, future);
+        iceProtocol.start();
+
+        InetSocketAddress actualAddress = CandidateType.SERVER_REFLEXIVE.equals(type)
+                ? ((TurnProxy<?>) iceProtocol.getClient()).getProxyAddress()
+                : localProperties.getHostAddress();
+
+        return new Candidate(
+                localProperties.getHostAddress(), actualAddress, type, localPreference,
+                iceProperties.getComponentId(), iceProtocol
+        );
     }
 
 }

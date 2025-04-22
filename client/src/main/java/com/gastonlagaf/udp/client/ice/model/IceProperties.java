@@ -1,9 +1,6 @@
 package com.gastonlagaf.udp.client.ice.model;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-import java.time.Duration;
 
 @Getter
 public class IceProperties {
@@ -14,24 +11,24 @@ public class IceProperties {
 
     private final IceRole role;
 
-    private final Duration ta;
-
     private final Integer componentId;
+
+    private final Integer retries;
 
     private final Integer minPort;
 
     private final Integer maxPort;
 
-    public IceProperties(IceRole role, Integer componentId, Integer minPort, Integer maxPort) {
-        this(null, null, role, Duration.ofMillis(50L), componentId, minPort, maxPort);
+    public IceProperties(IceRole role, Integer componentId, Integer retries, Integer minPort, Integer maxPort) {
+        this(null, null, role, componentId, retries, minPort, maxPort);
     }
 
-    public IceProperties(String sourceContactId, String targetContactId, IceRole role, Duration ta, Integer componentId, Integer minPort, Integer maxPort) {
+    public IceProperties(String sourceContactId, String targetContactId, IceRole role, Integer componentId, Integer retries, Integer minPort, Integer maxPort) {
         this.sourceContactId = sourceContactId;
         this.targetContactId = targetContactId;
         this.role = role;
-        this.ta = ta;
         this.componentId = componentId;
+        this.retries = retries;
 
         if (maxPort < minPort) {
             throw new IllegalArgumentException("maxPort must be greater than minPort");

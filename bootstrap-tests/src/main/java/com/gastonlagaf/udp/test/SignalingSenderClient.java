@@ -21,12 +21,12 @@ public class SignalingSenderClient {
                 URI.create("ws://127.0.0.1:8080/ws"), Duration.ofSeconds(20L)
         );
         SignalingSubscriber signalingSubscriber = new SignalingSubscriber("op1", List.of(
-                new AddressCandidate(1, InetSocketAddress.createUnresolved("127.0.0.1", 5123)),
-                new AddressCandidate(1, InetSocketAddress.createUnresolved("192.168.0.101", 5123))
+                new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("127.0.0.1", 5123)),
+                new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("192.168.0.101", 5123))
         ));
         SignalingClient client = new DefaultSignalingClient(properties, signalingSubscriber, new NoOpSignalingEventHandler());
         Session session = client.createSession().join();
-        SignalingSubscriber subscriber = client.invite(session.getId(), "op2").join();
+        SignalingSubscriber subscriber = client.invite(session.getId(), "op2", signalingSubscriber.getAddresses()).join();
         System.out.println(subscriber.getId());
         client.close();
 //        client.removeSubscriber(session.getId(), "op2").join();

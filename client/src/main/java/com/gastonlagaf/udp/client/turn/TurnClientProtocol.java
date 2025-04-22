@@ -5,8 +5,8 @@ import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.client.turn.client.impl.TurnUdpClient;
-import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
+import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
@@ -21,8 +21,6 @@ import java.util.Set;
 
 public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
-    private static final Integer REQUIRED_HOST_ADDRESS_COUNT = 1;
-
     private static final Set<MessageType> RESPONSE_MESSAGE_TYPES = Set.of(
             MessageType.BINDING_REQUEST,
             MessageType.CHANNEL_BIND,
@@ -33,14 +31,20 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     private final CommunicationCodec<Message> codec = new MessageCodec();
 
-    private final BaseClientProtocol<T> targetProtocol;
+    private final ClientProtocol<T> targetProtocol;
 
-    private final Map<Integer, InetSocketAddress> channelBindings;
+    private Map<Integer, InetSocketAddress> channelBindings;
 
-    public TurnClientProtocol(UdpSockets udpSockets, BaseClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
+    public TurnClientProtocol(TurnClientProtocol<?> baseTurnClientProtocol, ClientProtocol<T> targetProtocol) {
+        super(baseTurnClientProtocol);
+        this.targetProtocol = targetProtocol;
+        this.channelBindings = baseTurnClientProtocol.channelBindings;
+        this.selectionKey = baseTurnClientProtocol.selectionKey;
+    }
+
+    public TurnClientProtocol(UdpSockets udpSockets, ClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
         super(NatBehaviour.NO_NAT, clientProperties, udpSockets);
         this.targetProtocol = targetProtocol;
-        this.channelBindings = new HashMap<>();
     }
 
     @Override
@@ -50,7 +54,8 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
 
     @Override
     protected UdpClient<Message> createUdpClient(UdpClient<Message> udpClient) {
-        return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), this.channelBindings);
+        this.channelBindings = new HashMap<>();
+        return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), clientProperties.getTurnAddress(), this.channelBindings);
     }
 
     @Override
@@ -75,8 +80,7 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
             return null;
         }
         byte[] data = packet.getAttributes().<DefaultMessageAttribute>get(KnownAttributeName.DATA).getValue();
-        T message = targetProtocol.deserialize(receiverAddress, actualSender, ByteBuffer.wrap(data));
-        targetProtocol.handle(receiverAddress, actualSender, message);
+        targetProtocol.handle(receiverAddress, actualSender, ByteBuffer.wrap(data));
         return null;
     }
 

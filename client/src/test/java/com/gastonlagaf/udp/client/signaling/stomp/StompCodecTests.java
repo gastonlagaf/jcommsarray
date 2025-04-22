@@ -50,8 +50,8 @@ public class StompCodecTests {
                 StompMessageType.SEND,
                 Map.of("in", "the", "bobs", "office"),
                 new InviteEvent("1", "2", List.of(
-                        new AddressCandidate(1, InetSocketAddress.createUnresolved("127.0.0.1", 2022)),
-                        new AddressCandidate(2, InetSocketAddress.createUnresolved("192.168.0.104", 2023))
+                        new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("127.0.0.1", 2022)),
+                        new AddressCandidate(2, "HOST", InetSocketAddress.createUnresolved("192.168.0.104", 2023))
                 ))
         );
         String result = codec.encode(stompMessage);

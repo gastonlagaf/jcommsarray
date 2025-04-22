@@ -20,11 +20,15 @@ public class UdpSocketAttachment {
 
     private final Protocol<?> protocol;
 
-    private final BiConsumer<String, InetSocketAddress> closeListener;
-
-    private final BlockingQueue<UdpWriteEntry> writingQueue = new LinkedBlockingQueue<>(128);
+    private final BlockingQueue<UdpWriteEntry> writingQueue;
 
     @Setter
     private Boolean scheduleClose = false;
+
+    public UdpSocketAttachment(String id, InetSocketAddress socketAddress, Protocol<?> protocol) {
+        this(
+                id, socketAddress, protocol, new LinkedBlockingQueue<>(128)
+        );
+    }
 
 }

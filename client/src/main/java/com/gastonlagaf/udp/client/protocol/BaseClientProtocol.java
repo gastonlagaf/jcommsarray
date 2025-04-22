@@ -16,6 +16,7 @@ import com.gastonlagaf.udp.turn.model.NatBehaviour;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -37,22 +38,60 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     protected final NatBehaviour natBehaviour;
 
-    protected UdpSockets sockets;
+    protected final UdpSockets sockets;
 
-    protected UdpClient<T> client;
+    protected final UdpClient<T> client;
 
     protected SelectionKey selectionKey;
+
+    private final TurnClientProtocol<T> turnClientProtocol;
 
     public BaseClientProtocol(UdpSockets sockets) {
         this(null, null, sockets);
     }
 
+    public BaseClientProtocol(BaseClientProtocol<?> baseProtocol) {
+        this.clientProperties = baseProtocol.clientProperties;
+        this.natBehaviour = baseProtocol.natBehaviour;
+        this.sockets = baseProtocol.sockets;
+
+        UdpClient<T> udpClient;
+        if (null != baseProtocol.turnClientProtocol) {
+            this.turnClientProtocol = new TurnClientProtocol<>(baseProtocol.turnClientProtocol, this);
+            udpClient = new TurnProxy<>(this, this.turnClientProtocol);
+            this.selectionKey = baseProtocol.turnClientProtocol.selectionKey;
+        } else {
+            this.turnClientProtocol = null;
+            udpClient = baseProtocol instanceof TurnClientProtocol<?>
+                ? (UdpClient<T>) baseProtocol.client
+                : new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
+            this.selectionKey = baseProtocol.selectionKey;
+        }
+        this.client = baseProtocol instanceof TurnClientProtocol<?> ? udpClient : createUdpClient(udpClient);
+        this.pendingMessages = new PendingMessages<>(clientProperties.getSocketTimeout());
+
+        sockets.getRegistry().switchProtocol(
+                selectionKey,
+                null == this.turnClientProtocol ? this : this.turnClientProtocol
+        );
+    }
+
     public BaseClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, UdpSockets sockets) {
         this.clientProperties = Optional.ofNullable(clientProperties).orElseGet(this::getClientProperties);
         this.natBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
+        this.sockets = sockets;
+
+        UdpClient<T> udpClient;
+        if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(this.natBehaviour)) {
+            this.turnClientProtocol = null;
+            udpClient = new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
+        } else {
+            this.turnClientProtocol = new TurnClientProtocol<>(sockets, this, clientProperties);
+            udpClient = new TurnProxy<>(this,  turnClientProtocol);
+        }
+        this.client = createUdpClient(udpClient);
 
         this.pendingMessages = new PendingMessages<>(this.clientProperties.getSocketTimeout());
-        this.sockets = sockets;
     }
 
     protected abstract String getCorrelationId(T message);
@@ -95,22 +134,21 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
             StunClient stunClient = (StunClient) stunClientProtocol.getClient();
             return stunClient.checkMappingBehaviour();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
     @Override
     public void start() {
-        UdpClient<T> client;
-        if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(this.natBehaviour)) {
-            client = new BaseUdpClient<>(sockets, this, this.clientProperties.getHostAddress());
+        if (null != selectionKey) {
+            throw new IllegalStateException("Protocol is already bound to socket");
+        }
+        if (null == turnClientProtocol) {
             this.selectionKey = sockets.getRegistry().register(clientProperties.getHostAddress(), this);
         } else {
-            TurnClientProtocol<T> turnClientProtocol = new TurnClientProtocol<>(sockets, this, clientProperties);
             turnClientProtocol.start();
-            client = new TurnProxy<>(this,  turnClientProtocol);
+            this.selectionKey = turnClientProtocol.selectionKey;
         }
-        this.client = createUdpClient(client);
     }
 
     @Override

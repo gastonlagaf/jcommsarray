@@ -20,14 +20,14 @@ public class SignalingReceiverClient {
                 URI.create("ws://127.0.0.1:8080/ws"), Duration.ofSeconds(10L)
         );
         SignalingSubscriber signalingSubscriber = new SignalingSubscriber("op2", List.of(
-                new AddressCandidate(1, InetSocketAddress.createUnresolved("127.0.0.1", 5126)),
-                new AddressCandidate(1, InetSocketAddress.createUnresolved("192.168.0.121", 5126))
+                new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("127.0.0.1", 5126)),
+                new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("192.168.0.121", 5126))
         ));
         SignalingEventHandler signalingEventHandler = new SignalingEventHandler() {
             @Override
-            public Boolean handleInvite(InviteEvent event) {
+            public List<AddressCandidate> handleInvite(InviteEvent event) {
                 System.out.println("Received Invite event: " + event.getSessionId());
-                return true;
+                return List.of();
             }
 
             @Override

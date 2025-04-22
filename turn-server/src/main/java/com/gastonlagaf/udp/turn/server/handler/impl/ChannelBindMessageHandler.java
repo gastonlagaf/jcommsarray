@@ -29,7 +29,7 @@ public class ChannelBindMessageHandler implements StunMessageHandler {
         ChannelNumberAttribute channelNumberAttribute = getChannelNumberAttribute(message, message.getTurnSession());
 
         if (message.getTurnSession().contains(channelNumberAttribute.getValue(), peer.toInetSocketAddress())) {
-            throw new StunProtocolException("Turn session is already allocated", ErrorCode.ALLOCATION_MISMATCH.getCode());
+            throw new StunProtocolException("Bind is already allocated", ErrorCode.ALLOCATION_MISMATCH.getCode());
         }
         message.getTurnSession().putChannel(channelNumberAttribute.getValue(), peer.toInetSocketAddress());
 

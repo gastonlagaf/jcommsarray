@@ -5,6 +5,7 @@ import com.gastonlagaf.udp.client.UdpClientDelegate;
 import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import com.gastonlagaf.udp.turn.model.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -12,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnClient {
 
     private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -34,9 +36,9 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
 
     private final AtomicInteger channelCounter = new AtomicInteger(ChannelNumberAttribute.MIN_CHANNEL_NUMBER);
 
-    private InetSocketAddress targetAddress = null;
+    private InetSocketAddress targetAddress;
 
-    public TurnUdpClient(UdpClient<Message> udpClient, InetSocketAddress sourceAddress, Map<Integer, InetSocketAddress> channelBindings) {
+    public TurnUdpClient(UdpClient<Message> udpClient, InetSocketAddress sourceAddress, InetSocketAddress turnAddress, Map<Integer, InetSocketAddress> channelBindings) {
         super(udpClient);
         this.sourceAddress = sourceAddress;
         this.channelBindings = channelBindings;
@@ -47,7 +49,12 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
     }
 
     @Override
-    public void createPermission(List<InetSocketAddress> targets) {
+    public Map<Integer, InetSocketAddress> getChannelBindings() {
+        return channelBindings;
+    }
+
+    @Override
+    public CompletableFuture<Void> createPermission(List<InetSocketAddress> targets) {
         MessageHeader messageHeader = new MessageHeader(MessageType.CREATE_PERMISSION);
         List<MessageAttribute> peersList = targets.stream()
                 .<MessageAttribute>map(it -> new AddressAttribute(KnownAttributeName.XOR_PEER_ADDRESS, it))
@@ -58,31 +65,30 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
         MessageAttributes messageAttributes = new MessageAttributes(attributes);
 
         Message message = new Message(messageHeader, messageAttributes);
-        sendAndReceive(message);
-
-        bindings.addAll(targets);
+        return sendAndReceive(message).thenRun(() -> bindings.addAll(targets));
     }
 
     @Override
-    public Integer createChannel(InetSocketAddress target) {
+    public CompletableFuture<Integer> createChannel(InetSocketAddress target) {
         int channelNumber = channelCounter.getAndIncrement();
 
         return createChannel(channelNumber, target);
     }
 
     @Override
-    public Integer createChannel(Integer number, InetSocketAddress target) {
+    public CompletableFuture<Integer> createChannel(Integer number, InetSocketAddress target) {
+        log.info("Creating channel number {} for target {}", number, target);
         MessageHeader messageHeader = new MessageHeader(MessageType.CHANNEL_BIND);
         Map<Integer, MessageAttribute> attributes = Map.of(
                 KnownAttributeName.CHANNEL_NUMBER.getCode(), new ChannelNumberAttribute(number),
                 KnownAttributeName.XOR_PEER_ADDRESS.getCode(), new AddressAttribute(KnownAttributeName.XOR_PEER_ADDRESS, target)
         );
         Message message = new Message(messageHeader, attributes);
-        sendAndReceive(message);
-        channelBindings.put(number, target);
-        bindings.add(target);
-
-        return number;
+        return sendAndReceive(message).thenApply(it -> {
+            channelBindings.put(number, target);
+            bindings.add(target);
+            return number;
+        });
     }
 
     @Override
@@ -118,6 +124,9 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
     }
 
     public InetSocketAddress start(InetSocketAddress turnAddress) {
+        if (null != this.targetAddress) {
+            return this.targetAddress;
+        }
         MessageHeader messageHeader = new MessageHeader(MessageType.ALLOCATE);
         Map<Integer, MessageAttribute> attributes = Map.of(
                 KnownAttributeName.REQUESTED_TRANSPORT.getCode(), new RequestedTransportAttribute(Protocol.UDP)
@@ -128,7 +137,8 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
         this.targetAddress = response.getAttributes()
                 .<AddressAttribute>get(KnownAttributeName.XOR_RELAYED_ADDRESS)
                 .toInetSocketAddress();
-        return this.targetAddress;
+
+        return targetAddress;
     }
 
     @Override
@@ -138,32 +148,35 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
 
     @Override
     public void close() {
-        refresh(LifetimeAttribute.DELETE_ALLOCATION_LIFETIME_MARK);
-        refreshSchedule.cancel(true);
-        try {
-            super.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        refresh(LifetimeAttribute.DELETE_ALLOCATION_LIFETIME_MARK).whenComplete((result, throwable) -> {
+            refreshSchedule.cancel(true);
+            try {
+                super.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
-    private void refresh(Integer timeMinutes) {
+    private CompletableFuture<Message> refresh(Integer timeMinutes) {
         Integer lifetime = Optional.ofNullable(timeMinutes).orElse(DEFAULT_LIFETIME_MINUTES);
         MessageHeader messageHeader = new MessageHeader(MessageType.REFRESH);
         Map<Integer, MessageAttribute> attributes = Map.of(
                 KnownAttributeName.LIFETIME.getCode(), new LifetimeAttribute(lifetime)
         );
         Message message = new Message(messageHeader, attributes);
-        sendAndReceive(message);
+        return sendAndReceive(message);
     }
 
-    private void sendAndReceive(Message message) {
+    private CompletableFuture<Message> sendAndReceive(Message message) {
         assertTurnSessionStarted();
-        Message response = sendAndReceive(this.targetAddress, message).join();
-        ErrorCodeAttribute errorAttribute = response.getAttributes().get(KnownAttributeName.ERROR_CODE);
-        if (null != errorAttribute) {
-            throw new StunProtocolException(errorAttribute.getReasonPhrase(), errorAttribute.getCode());
-        }
+        return sendAndReceive(this.targetAddress, message).thenApply(it -> {
+            ErrorCodeAttribute errorAttribute = it.getAttributes().get(KnownAttributeName.ERROR_CODE);
+            if (null != errorAttribute) {
+                throw new StunProtocolException(errorAttribute.getReasonPhrase(), errorAttribute.getCode());
+            }
+            return it;
+        });
     }
 
     private void assertTurnSessionStarted() {

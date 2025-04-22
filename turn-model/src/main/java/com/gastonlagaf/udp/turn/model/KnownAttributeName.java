@@ -38,7 +38,11 @@ public enum KnownAttributeName {
     RESERVATION_TOKEN(0x0022),
     ADDITIONAL_ADDRESS_FAMILY(0x8000),
     ADDRESS_ERROR_CODE(0x8001),
-    ICMP(0x8004);
+    ICMP(0x8004),
+    PRIORITY(0x0024),
+    USE_CANDIDATE(0x0025),
+    ICE_CONTROLLED(0x8029),
+    ICE_CONTROLLING(0x802A);
 
     private final Integer code;
 

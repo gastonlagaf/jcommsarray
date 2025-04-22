@@ -1,45 +1,46 @@
 package com.gastonlagaf.udp.client.ice.protocol;
 
 import com.gastonlagaf.udp.client.UdpClient;
-import com.gastonlagaf.udp.client.ice.candidate.CandidateSpotter;
-import com.gastonlagaf.udp.client.ice.model.Candidate;
-import com.gastonlagaf.udp.client.ice.model.CandidateType;
-import com.gastonlagaf.udp.client.ice.model.IceProperties;
+import com.gastonlagaf.udp.client.ice.model.CandidatePair;
+import com.gastonlagaf.udp.client.ice.model.IceConnectResult;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
-import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
+import com.gastonlagaf.udp.client.ice.model.IceSession;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
+import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
+import com.gastonlagaf.udp.protocol.ClientProtocol;
+import com.gastonlagaf.udp.protocol.Protocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
-import com.gastonlagaf.udp.turn.model.Message;
-import com.gastonlagaf.udp.turn.model.NatBehaviour;
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
+import com.gastonlagaf.udp.turn.model.*;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class IceProtocol extends BaseClientProtocol<Message> {
 
+    private final IceSession iceSession;
+
+    private final CompletableFuture<IceConnectResult> future;
+
     private final MessageCodec codec = new MessageCodec();
 
-    private final CandidateSpotter candidateSpotter;
+    public IceProtocol(UdpSockets sockets, IceSession iceSession, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+        this(NatBehaviour.NO_NAT, iceSession, sockets, clientProperties, future);
+    }
 
-    private final CandidateTransferOperator candidateTransferOperator;
-
-    private final List<Candidate> opponentCandidates = new ArrayList<>();
-
-    public IceProtocol(UdpSockets udpSockets, ClientProperties clientProperties, CandidateSpotter candidateSpotter, CandidateTransferOperator candidateTransferOperator) {
-        super(
-                NatBehaviour.NO_NAT,
-                clientProperties,
-                udpSockets
-        );
-        this.candidateSpotter = candidateSpotter;
-        this.candidateTransferOperator = candidateTransferOperator;
+    public IceProtocol(NatBehaviour natBehaviour, IceSession iceSession, UdpSockets sockets, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+        super(natBehaviour, clientProperties, sockets);
+        this.iceSession = iceSession;
+        this.future = future;
     }
 
     @Override
@@ -64,15 +65,73 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
     @Override
     public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, Message packet) {
-        return null;
+        String txId = HexFormat.of().formatHex(packet.getHeader().getTransactionId());
+        if (!pendingMessages.complete(txId, packet) && MessageType.BINDING_REQUEST.equals(packet.getHeader().getType())) {
+            boolean shouldNominate = packet.getAttributes().containsKey(KnownAttributeName.USE_CANDIDATE.getCode())
+                    && IceRole.CONTROLLED.equals(iceSession.getRole());
+
+            Boolean requestValid = respond(receiverAddress, senderAddress, packet);
+
+            if (shouldNominate && requestValid) {
+                Optional.ofNullable(future).ifPresent(it -> {
+                    IceConnectResult iceConnectResult = new IceConnectResult(senderAddress, this);
+                    it.complete(iceConnectResult);
+                });
+            }
+        }
+        return new UdpPacketHandlerResult();
     }
 
-    public DatagramChannel connect(IceProperties iceProperties) {
-        List<Candidate> candidates = candidateSpotter.search();
-        List<Candidate> targetCandidates = candidateTransferOperator.exchange(
-                iceProperties.getSourceContactId(), iceProperties.getTargetContactId(), candidates
+    public <P extends ClientProtocol<?>> P assign(P protocol) {
+        if (!selectionKey.isValid()) {
+            throw new IllegalStateException("Selection key is invalid");
+        }
+        if (this.getClient() instanceof TurnProxy<Message> turnProxy) {
+            TurnClientProtocol turnClientProtocol = new TurnClientProtocol(sockets, protocol, clientProperties);
+        } else {
+            sockets.getRegistry().switchProtocol(selectionKey, protocol);
+        }
+        return protocol;
+    }
+
+    private Boolean respond(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, Message packet) {
+        IceRole role = packet.getAttributes().containsKey(KnownAttributeName.ICE_CONTROLLING.getCode())
+                ? IceRole.CONTROLLING
+                : IceRole.CONTROLLED;
+        boolean result = !role.equals(iceSession.getRole());
+        Message message;
+        if (!result) {
+            StunProtocolException error = new StunProtocolException("Role conflict", ErrorCode.ROLE_CONFLICT.getCode());
+            message = new Message(MessageType.BINDING_RESPONSE, packet.getHeader().getTransactionId(), error);
+            future.completeExceptionally(error);
+        } else {
+            Map<Integer, MessageAttribute> attributes = prepareAttributes(receiverAddress, senderAddress);
+            MessageHeader messageHeader = new MessageHeader(
+                    MessageType.BINDING_RESPONSE.getCode(), 0, packet.getHeader().getTransactionId()
+            );
+            message = new Message(messageHeader, attributes);
+        }
+
+        client.send(receiverAddress, senderAddress, message);
+
+        return result;
+    }
+
+    private Map<Integer, MessageAttribute> prepareAttributes(InetSocketAddress serverAddress, InetSocketAddress clientAddress) {
+        Map<Integer, MessageAttribute> attributes = new HashMap<>();
+        attributes.put(
+                KnownAttributeName.XOR_MAPPED_ADDRESS.getCode(),
+                new AddressAttribute(KnownAttributeName.XOR_MAPPED_ADDRESS, clientAddress)
         );
-        return null;
+        attributes.put(
+                KnownAttributeName.MAPPED_ADDRESS.getCode(),
+                new AddressAttribute(KnownAttributeName.MAPPED_ADDRESS, clientAddress)
+        );
+        attributes.put(
+                KnownAttributeName.RESPONSE_ORIGIN.getCode(),
+                new AddressAttribute(KnownAttributeName.RESPONSE_ORIGIN, serverAddress)
+        );
+        return attributes;
     }
 
 }

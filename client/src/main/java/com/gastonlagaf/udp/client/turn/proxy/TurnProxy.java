@@ -1,7 +1,6 @@
 package com.gastonlagaf.udp.client.turn.proxy;
 
 import com.gastonlagaf.udp.client.UdpClient;
-import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
 import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
@@ -9,6 +8,7 @@ import com.gastonlagaf.udp.protocol.ClientProtocol;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,39 +26,50 @@ public class TurnProxy<T> implements UdpClient<T> {
         this.turnClientProtocol = turnClientProtocol;
         this.targetProtocol = targetProtocol;
         this.turnClient = (TurnClient) turnClientProtocol.getClient();
+        this.turnClient.getChannelBindings().forEach((key, value) -> this.channelBindings.put(value, key));
     }
 
     @Override
     public CompletableFuture<Void> send(InetSocketAddress target, T message) {
-        Integer channelNumber = channelBindings.computeIfAbsent(target, turnClient::createChannel);
-        byte[] data = targetProtocol.serialize(message).array();
-        return turnClient.send(channelNumber, data);
+        return Optional.ofNullable(channelBindings.get(target))
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> doCreateChannel(target))
+                .thenCompose(it -> {
+                    byte[] data = targetProtocol.serialize(message).array();
+                    return turnClient.send(it, data);
+                });
+
     }
 
     @Override
     public CompletableFuture<Void> send(InetSocketAddress source, InetSocketAddress target, T message) {
-        throw new UnsupportedOperationException();
+        return send(target, message);
     }
 
     @Override
     public CompletableFuture<T> sendAndReceive(InetSocketAddress target, T message) {
-        CompletableFuture<T> result = targetProtocol.awaitResult(message);
-        send(target, message);
-        return result;
+        return send(target, message).thenCompose(it -> targetProtocol.awaitResult(message));
     }
 
     @Override
     public CompletableFuture<T> sendAndReceive(InetSocketAddress source, InetSocketAddress target, T message) {
-        throw new UnsupportedOperationException();
+        return sendAndReceive(target, message);
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.turnClientProtocol.close();
     }
 
     public InetSocketAddress getProxyAddress() {
         return turnClient.getProxyAddress();
     }
 
-    @Override
-    public void close() throws IOException {
-        this.turnClientProtocol.close();
+    private CompletableFuture<Integer> doCreateChannel(InetSocketAddress target) {
+        return turnClient.createChannel(target).thenApply(it -> {
+            channelBindings.put(target, it);
+            return it;
+        });
     }
 
 }

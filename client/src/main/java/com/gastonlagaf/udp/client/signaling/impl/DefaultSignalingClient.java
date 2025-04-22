@@ -17,10 +17,7 @@ import lombok.SneakyThrows;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -80,13 +77,14 @@ public class DefaultSignalingClient implements SignalingClient {
 
     @Override
     public CompletableFuture<Session> createSession() {
-        return sendAndReceive(new CreateSessionEvent(signalingSubscriber.getId()), SessionCreatedEvent.class)
+        return sendAndReceive(new CreateSessionEvent(signalingSubscriber.getId()))
                 .thenApply(it -> new Session(it.getSessionId(), it.getUserId(), new HashSet<>()));
     }
 
     @Override
-    public CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId) {
-        return sendAndReceive(new InviteEvent(sessionId, subscriberId, signalingSubscriber.getAddresses()), SessionEvent.class)
+    public CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates) {
+        InviteEvent inviteEvent = new InviteEvent(sessionId, subscriberId, addressCandidates);
+        return sendAndReceive(inviteEvent)
                 .thenApply(it -> {
                     if (it instanceof InviteAnsweredEvent inviteAnsweredEvent) {
                         send(new AcknowledgedEvent(sessionId, subscriberId));
@@ -99,7 +97,7 @@ public class DefaultSignalingClient implements SignalingClient {
 
     @Override
     public CompletableFuture<Void> removeSubscriber(String sessionId, String subscriberId) {
-        return sendAndReceive(new ClosingEvent(sessionId, subscriberId), ClosedEvent.class)
+        return sendAndReceive(new ClosingEvent(sessionId, subscriberId))
                 .thenApply(it -> null);
     }
 
@@ -126,7 +124,7 @@ public class DefaultSignalingClient implements SignalingClient {
         webSocket.sendText(serializedEvent, true);
     }
 
-    private <T extends SessionEvent> CompletableFuture<T> sendAndReceive(SessionEvent event, Class<T> expectedType) {
+    private <T extends SessionEvent> CompletableFuture<T> sendAndReceive(SessionEvent event) {
         CompletableFuture<T> result = pendingMessages.put(event.getUserId())
                 .thenApply(it -> (T) it);
         send(event);
@@ -173,9 +171,9 @@ public class DefaultSignalingClient implements SignalingClient {
             SignalingEvent payload = stompMessage.getPayload();
             if (payload instanceof SessionEvent sessionEvent) {
                 if (sessionEvent instanceof InviteEvent inviteEvent) {
-                    Boolean accepted = signalingEventHandler.handleInvite(inviteEvent);
-                    SessionEvent answer = accepted
-                            ? new InviteAnsweredEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), signalingSubscriber.getAddresses())
+                    List<AddressCandidate> addresses = signalingEventHandler.handleInvite(inviteEvent);
+                    SessionEvent answer = Optional.ofNullable(addresses).map(it -> !it.isEmpty()).orElse(false)
+                            ? new InviteAnsweredEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), addresses)
                             : new CancelEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), "Rejected");
                     send(answer);
                 } else if (sessionEvent instanceof ClosingEvent closingEvent) {

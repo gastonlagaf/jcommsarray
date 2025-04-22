@@ -92,8 +92,12 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
     public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, ContexedMessage packet) {
         try {
             StunResponse response = handlers.get(packet.getHeader().getType()).handle(receiverAddress, senderAddress, packet);
-            ByteBuffer data = messageCodec.encode(response.getMessage());
-            sockets.send(response.getSourceAddress(), response.getTargetAddress(), data);
+            Optional.ofNullable(response)
+                    .flatMap(it -> Optional.ofNullable(it.getMessage()))
+                    .ifPresent(it -> {
+                        ByteBuffer data = messageCodec.encode(response.getMessage());
+                        sockets.send(response.getSourceAddress(), response.getTargetAddress(), data);
+                    });
             return new UdpPacketHandlerResult(response.getCloseChannel());
         } catch (StunProtocolException spe) {
             Message errorMessage = new Message(packet.getHeader().getType(), packet.getHeader().getTransactionId(), spe);
@@ -101,7 +105,7 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
             sockets.send(receiverAddress, senderAddress, serializedErrorMessage);
             return new UdpPacketHandlerResult();
         } catch (Exception e) {
-            log.error("Error handling incoming message", e);
+            log.error("Error handling incoming message " + packet.getHeader().getType(), e);
             return null;
         }
     }

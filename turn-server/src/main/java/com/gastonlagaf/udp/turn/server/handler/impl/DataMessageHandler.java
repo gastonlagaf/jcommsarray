@@ -1,5 +1,6 @@
 package com.gastonlagaf.udp.turn.server.handler.impl;
 
+import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import com.gastonlagaf.udp.turn.model.*;
 import com.gastonlagaf.udp.turn.server.handler.StunMessageHandler;
 import com.gastonlagaf.udp.turn.server.model.ContexedMessage;
@@ -21,7 +22,8 @@ public class DataMessageHandler implements StunMessageHandler {
     @Override
     public StunResponse handle(InetSocketAddress serverAddress, InetSocketAddress clientAddress, ContexedMessage message) {
         if (null == message.getTurnSession()) {
-            return null;
+            throw new StunProtocolException("No turn session for " + serverAddress, ErrorCode.SERVER_ERROR.getCode());
+//            return null;
         }
         MessageType messageType;
         Integer channelNumber = message.getTurnSession().getChannelByAddress(clientAddress);
@@ -30,7 +32,8 @@ public class DataMessageHandler implements StunMessageHandler {
         } else if (message.getTurnSession().getPeers().contains(clientAddress)) {
             messageType = MessageType.DATA;
         } else {
-            return null;
+            throw new StunProtocolException("No channel found for " + clientAddress, ErrorCode.SERVER_ERROR.getCode());
+//            return null;
         }
 
         MessageHeader header = new MessageHeader(messageType);

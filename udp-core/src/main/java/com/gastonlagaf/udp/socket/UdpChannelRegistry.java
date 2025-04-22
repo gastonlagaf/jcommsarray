@@ -46,12 +46,15 @@ public class UdpChannelRegistry implements ChannelRegistry {
     @Override
     public SelectionKey register(InetSocketAddress inetSocketAddress, Protocol<?> protocol) {
         String id = UUID.randomUUID().toString();
-        return register(id, inetSocketAddress, protocol, null);
+        return register(id, inetSocketAddress, protocol);
     }
 
+    @Override
     public SelectionKey switchProtocol(SelectionKey selectionKey, Protocol<?> protocol) {
         UdpSocketAttachment attachment = (UdpSocketAttachment) selectionKey.attachment();
-        UdpSocketAttachment newAttachment = new UdpSocketAttachment(attachment.getId(), attachment.getSocketAddress(), protocol, attachment.getCloseListener());
+        UdpSocketAttachment newAttachment = new UdpSocketAttachment(
+                attachment.getId(), attachment.getSocketAddress(), protocol, attachment.getWritingQueue()
+        );
 
         selectionKey.attach(newAttachment);
 
@@ -60,7 +63,22 @@ public class UdpChannelRegistry implements ChannelRegistry {
 
     @Override
     public void deregister(SelectionKey key) {
-        deregister(key, true);
+        UdpSocketAttachment attachment = (UdpSocketAttachment) key.attachment();
+
+        InetSocketAddress socketAddress = attachment.getSocketAddress();
+        String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
+
+        if (!key.isValid()) {
+            writeQueueMap.remove(queueMapKey);
+        }
+
+        key.cancel();
+        try(DatagramChannel channel = (DatagramChannel) key.channel()) {
+            channel.disconnect();
+        } catch (IOException e) {
+            log.error("Failed to close channel", e);
+        }
+        writeQueueMap.remove(queueMapKey);
     }
 
     @Override
@@ -76,13 +94,13 @@ public class UdpChannelRegistry implements ChannelRegistry {
         }
     }
 
-    public SelectionKey register(String id, InetSocketAddress inetSocketAddress, Protocol<?> protocol, BiConsumer<String, InetSocketAddress> closeListener) {
+    public SelectionKey register(String id, InetSocketAddress inetSocketAddress, Protocol<?> protocol) {
         String queueMapKey = inetSocketAddress.getHostName() + ":" + inetSocketAddress.getPort();
         if (writeQueueMap.containsKey(queueMapKey)) {
             throw new IllegalArgumentException("Address already bound: " + inetSocketAddress);
         }
 
-        UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, protocol, closeListener);
+        UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, protocol);
 
         DatagramChannel channel = create(inetSocketAddress);
 
@@ -95,36 +113,6 @@ public class UdpChannelRegistry implements ChannelRegistry {
         log.info("Udp socket registered for interface {} and port {}", inetSocketAddress.getHostName(), inetSocketAddress.getPort());
 
         return selectionKey;
-    }
-
-    private Channel deregister(SelectionKey key, Boolean closeChannel) {
-        UdpSocketAttachment attachment = (UdpSocketAttachment) key.attachment();
-
-        InetSocketAddress socketAddress = attachment.getSocketAddress();
-        String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
-
-        if (!key.isValid()) {
-            Optional.ofNullable(attachment.getCloseListener())
-                    .ifPresent(it -> it.accept(attachment.getId(), attachment.getSocketAddress()));
-            writeQueueMap.remove(queueMapKey);
-            return null;
-        }
-
-        Channel channel = key.channel();
-
-        key.cancel();
-        if (closeChannel) {
-            try {
-                key.channel().close();
-            } catch (IOException e) {
-                log.error("Failed to close channel", e);
-            }
-            Optional.ofNullable(attachment.getCloseListener())
-                    .ifPresent(it -> it.accept(attachment.getId(), attachment.getSocketAddress()));
-        }
-        writeQueueMap.remove(queueMapKey);
-
-        return channel;
     }
 
     private Selector getSelector() {

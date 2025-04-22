@@ -3,6 +3,7 @@ package com.gastonlagaf.udp.test.protocol;
 import com.gastonlagaf.udp.client.UdpClient;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
@@ -18,6 +19,11 @@ public class PureProtocol extends BaseClientProtocol<String> {
 
     public PureProtocol(UdpSockets udpSockets, NatBehaviour natBehaviour, ClientProperties clientProperties, Boolean shouldReply) {
         super(natBehaviour, clientProperties, udpSockets);
+        this.shouldReply = shouldReply;
+    }
+
+    public PureProtocol(BaseClientProtocol<?> baseProtocol, Boolean shouldReply) {
+        super(baseProtocol);
         this.shouldReply = shouldReply;
     }
 

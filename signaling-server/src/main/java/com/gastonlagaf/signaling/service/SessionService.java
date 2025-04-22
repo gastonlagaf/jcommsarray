@@ -1,5 +1,7 @@
 package com.gastonlagaf.signaling.service;
 
+import com.gastonlagaf.signaling.model.InviteAnsweredEvent;
+import com.gastonlagaf.signaling.model.InviteEvent;
 import com.gastonlagaf.signaling.model.Session;
 
 import java.util.List;
@@ -10,9 +12,9 @@ public interface SessionService {
 
     Session destroy(String id, String hostId);
 
-    Session invite(String id, String hostId, String subscriberId);
+    Session invite(String id, String hostId, InviteEvent inviteEvent);
 
-    Session answer(String id, String subscriberId);
+    Session answer(String id, String subscriberId, InviteAnsweredEvent event);
 
     Session reject(String id, String subscriberId);
 

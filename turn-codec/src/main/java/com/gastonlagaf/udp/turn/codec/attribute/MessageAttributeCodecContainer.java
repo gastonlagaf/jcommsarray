@@ -32,7 +32,11 @@ public class MessageAttributeCodecContainer {
                 Map.entry(KnownAttributeName.ADDRESS_ERROR_CODE.getCode(), new AddressErrorCodeAttributeCodec()),
                 Map.entry(KnownAttributeName.MESSAGE_INTEGRITY.getCode(), new MessageIntegrityAttributeCodec()),
                 Map.entry(KnownAttributeName.MESSAGE_INTEGRITY_SHA256.getCode(), new MessageIntegrityAttributeCodec()),
-                Map.entry(KnownAttributeName.PASSWORD_ALGORITHM.getCode(), new PasswordAlgorithmAttributeCodec())
+                Map.entry(KnownAttributeName.PASSWORD_ALGORITHM.getCode(), new PasswordAlgorithmAttributeCodec()),
+                Map.entry(KnownAttributeName.PRIORITY.getCode(), new IntegerAttributeCodec()),
+                Map.entry(KnownAttributeName.USE_CANDIDATE.getCode(), new FlagAttributeCodec()),
+                Map.entry(KnownAttributeName.ICE_CONTROLLED.getCode(), new LongAttributeCodec()),
+                Map.entry(KnownAttributeName.ICE_CONTROLLING.getCode(), new LongAttributeCodec())
         );
     }
 

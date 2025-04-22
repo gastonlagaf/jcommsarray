@@ -2,41 +2,87 @@ package com.gastonlagaf.udp.client.ice.impl;
 
 import com.gastonlagaf.udp.client.ice.IceConnector;
 import com.gastonlagaf.udp.client.ice.candidate.CandidateSpotter;
-import com.gastonlagaf.udp.client.ice.model.Candidate;
-import com.gastonlagaf.udp.client.ice.model.IceProperties;
-import com.gastonlagaf.udp.client.ice.model.IceRole;
+import com.gastonlagaf.udp.client.ice.model.*;
+import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
 import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import lombok.RequiredArgsConstructor;
+import com.gastonlagaf.udp.socket.UdpSockets;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 
-@RequiredArgsConstructor
+@Slf4j
 public class DefaultIceConnector implements IceConnector {
+
+    private final IceSession iceSession;
 
     private final IceProperties iceProperties;
 
-    private final CandidateSpotter candidateSpotter;
-
     private final CandidateTransferOperator candidateTransferOperator;
 
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    @Getter
+    private final SortedSet<Candidate> localCandidates;
 
-    public DefaultIceConnector(IceProperties iceProperties, ClientProperties clientProperties, CandidateTransferOperator candidateTransferOperator) {
+    private final CompletableFuture<IceConnectResult> future = new CompletableFuture<>();
+
+    public DefaultIceConnector(UdpSockets sockets, IceProperties iceProperties, ClientProperties clientProperties, CandidateTransferOperator candidateTransferOperator) {
         this.iceProperties = iceProperties;
-        this.candidateSpotter = new CandidateSpotter(iceProperties, clientProperties);
         this.candidateTransferOperator = candidateTransferOperator;
+        this.iceSession = new IceSession(iceProperties.getRole(), new Random().nextLong());
+
+        CandidateSpotter candidateSpotter = new CandidateSpotter(sockets, iceSession, iceProperties, clientProperties, future);
+        this.localCandidates = candidateSpotter.search();
     }
 
     @Override
-    public Candidate connect(String peerIdentifier) {
-        List<Candidate> candidates = candidateSpotter.search();
-        List<Candidate> targetCandidates = candidateTransferOperator.exchange(
-                iceProperties.getSourceContactId(), iceProperties.getTargetContactId(), candidates
+    public CompletableFuture<IceConnectResult> connect(String opponentId) {
+        log.info("Initiating connection with {} as {}", opponentId, iceSession.getRole());
+        SortedSet<Candidate> targetCandidates = candidateTransferOperator.exchange(
+                iceProperties.getSourceContactId(), iceProperties.getTargetContactId(), localCandidates
         );
-        return null;
+        return connect(opponentId, targetCandidates);
+    }
+
+    @Override
+    public CompletableFuture<IceConnectResult> connect(String opponentId, SortedSet<Candidate> opponentCandidates) {
+        log.info("Connecting to {} as {}", opponentId, iceSession.getRole());
+        SortedSet<CandidatePair> candidatePairs = formPairs(localCandidates, opponentCandidates);
+
+        Checklist checklist = new Checklist(iceProperties.getRetries(), iceSession, candidatePairs, future);
+
+        return checklist.check().thenApply(it -> {
+            closeRedundantSockets(it.getIceProtocol());
+            return it;
+        });
+    }
+
+    private void closeRedundantSockets(IceProtocol nominatedCandidate) {
+        localCandidates.stream()
+                .filter(it -> !it.getIceProtocol().equals(nominatedCandidate))
+                .forEach(it -> {
+                    try {
+                        it.getIceProtocol().close();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+    }
+
+    private SortedSet<CandidatePair> formPairs(SortedSet<Candidate> localCandidates, SortedSet<Candidate> remoteCandidates) {
+        SortedSet<CandidatePair> result = new TreeSet<>();
+        for (Candidate localCandidate: localCandidates) {
+            for (Candidate remoteCandidate: remoteCandidates) {
+                CandidatePair pair = new CandidatePair(iceProperties.getRole(), localCandidate, remoteCandidate);
+                result.add(pair);
+            }
+        }
+        return result;
     }
 
 }

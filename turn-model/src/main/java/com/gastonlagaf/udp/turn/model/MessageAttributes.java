@@ -63,8 +63,8 @@ public class MessageAttributes {
         return attributes.isEmpty();
     }
 
-    public boolean containsKey(Object key) {
-        return attributes.containsKey(key);
+    public boolean containsKey(Integer code) {
+        return attributes.containsKey(code);
     }
 
     public Set<Integer> keySet() {

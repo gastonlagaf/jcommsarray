@@ -2,6 +2,7 @@ package com.gastonlagaf.signaling.websocket;
 
 import com.gastonlagaf.signaling.model.CancelEvent;
 import com.gastonlagaf.signaling.model.ClosingEvent;
+import com.gastonlagaf.signaling.model.InviteAnsweredEvent;
 import com.gastonlagaf.signaling.model.InviteEvent;
 import com.gastonlagaf.signaling.service.SessionService;
 import lombok.RequiredArgsConstructor;
@@ -31,12 +32,12 @@ public class SessionHandler {
 
     @MessageMapping("/{id}/invite")
     public void invite(Principal principal, @DestinationVariable("id") String id, @Payload InviteEvent event) {
-        service.invite(id, principal.getName(), event.getUserId());
+        service.invite(id, principal.getName(), event);
     }
 
     @MessageMapping("/{id}/answer")
-    public void answer(Principal principal, @DestinationVariable("id") String id) {
-        service.answer(id, principal.getName());
+    public void answer(Principal principal, @DestinationVariable("id") String id, @Payload InviteAnsweredEvent event) {
+        service.answer(id, principal.getName(), event);
     }
 
     @MessageMapping("/{id}/reject")

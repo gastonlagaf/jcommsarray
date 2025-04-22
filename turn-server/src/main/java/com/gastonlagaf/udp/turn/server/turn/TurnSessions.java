@@ -9,7 +9,6 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashMap;
@@ -102,8 +101,7 @@ public class TurnSessions {
         } finally {
             lock.unlock();
         }
-
-    };
+    }
 
     private Integer doAllocate() {
         if (allocatedPorts.isEmpty()) {
@@ -132,13 +130,9 @@ public class TurnSessions {
         if (null == turnSession) {
             return;
         }
-//        try {
-            turnSession.getSelectionKey().cancel();
-            allocatedPorts.remove(turnSession.getServerAddress().getPort());
-            log.info("Evicted turn server socket {}", turnSession.getServerAddress().toString());
-//        } catch (IOException e) {
-//            log.error("Error closing turn channel", e);
-//        }
+        turnSession.getSelectionKey().cancel();
+        allocatedPorts.remove(turnSession.getServerAddress().getPort());
+        log.info("Evicted turn server socket {}", turnSession.getServerAddress().toString());
     }
 
 }

@@ -42,25 +42,25 @@ public class DefaultSessionService implements SessionService {
     }
 
     @Override
-    public Session invite(String id, String hostId, String subscriberId) {
+    public Session invite(String id, String hostId, InviteEvent inviteEvent) {
         return datastore.findById(id)
                 .filter(it -> it.getHostId().equals(hostId))
                 .map(it -> {
-                    SignalingSubscriber targetSubscriber = getSubscriber(it.getId(), subscriberId);
-                    it.getParticipantIds().add(subscriberId);
+                    SignalingSubscriber targetSubscriber = getSubscriber(it.getId(), inviteEvent.getUserId());
+                    it.getParticipantIds().add(inviteEvent.getUserId());
                     Session result = datastore.save(it);
-                    signalingSubscriberService.send(subscriberId, new InviteEvent(it.getId(), it.getHostId(), targetSubscriber.getAddresses()));
+                    signalingSubscriberService.send(inviteEvent.getUserId(), new InviteEvent(it.getId(), it.getHostId(), inviteEvent.getAddresses()));
                     return result;
                 })
                 .orElseThrow(() -> new SessionException(id, hostId, "Session not found"));
     }
 
     @Override
-    public Session answer(String id, String subscriberId) {
+    public Session answer(String id, String subscriberId, InviteAnsweredEvent event) {
         return datastore.findById(id)
                 .filter(it -> it.getParticipantIds().contains(subscriberId))
                 .map(it -> {
-                    SignalingSubscriber targetSubscriber = getSubscriber(it.getId(), subscriberId);
+                    SignalingSubscriber targetSubscriber = new SignalingSubscriber(subscriberId, event.getAddresses());
                     signalingSubscriberService.send(it.getHostId(), new InviteAnsweredEvent(it.getId(), targetSubscriber.getId(), targetSubscriber.getAddresses()));
                     return it;
                 })

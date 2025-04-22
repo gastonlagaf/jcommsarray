@@ -94,23 +94,27 @@ public class UdpSockets implements Closeable {
         @Override
         public void run() {
             while (selector.isOpen()) {
-                Set<SelectionKey> selectedKeys = select();
-                Iterator<SelectionKey> iterator = selectedKeys.iterator();
-                while (iterator.hasNext()) {
-                    SelectionKey key = iterator.next();
-                    iterator.remove();
-                    if (!key.isValid()) {
-                        registry.deregister(key);
-                        continue;
+                try {
+                    Set<SelectionKey> selectedKeys = select();
+                    Iterator<SelectionKey> iterator = selectedKeys.iterator();
+                    while (iterator.hasNext()) {
+                        SelectionKey key = iterator.next();
+                        iterator.remove();
+                        if (!key.isValid()) {
+                            registry.deregister(key);
+                            continue;
+                        }
+                        DatagramChannel channel = (DatagramChannel) key.channel();
+                        UdpSocketAttachment attachment = (UdpSocketAttachment) key.attachment();
+                        if (key.isReadable()) {
+                            processRead(channel, attachment);
+                        }
+                        if (key.isWritable()) {
+                            processWrite(key, channel, attachment);
+                        }
                     }
-                    DatagramChannel channel = (DatagramChannel) key.channel();
-                    UdpSocketAttachment attachment = (UdpSocketAttachment) key.attachment();
-                    if (key.isReadable()) {
-                        processRead(channel, attachment);
-                    }
-                    if (key.isWritable()) {
-                        processWrite(key, channel, attachment);
-                    }
+                } catch (Exception e) {
+                    log.error("", e.getMessage());
                 }
             }
         }
