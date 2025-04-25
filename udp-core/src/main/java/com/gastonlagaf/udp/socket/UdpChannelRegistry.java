@@ -68,17 +68,16 @@ public class UdpChannelRegistry implements ChannelRegistry {
         InetSocketAddress socketAddress = attachment.getSocketAddress();
         String queueMapKey = socketAddress.getHostName() + ":" + socketAddress.getPort();
 
-        if (!key.isValid()) {
-            writeQueueMap.remove(queueMapKey);
+        if (key.isValid()) {
+            key.cancel();
+            try(DatagramChannel channel = (DatagramChannel) key.channel()) {
+                channel.disconnect();
+            } catch (IOException e) {
+                log.error("Failed to close channel", e);
+            }
         }
-
-        key.cancel();
-        try(DatagramChannel channel = (DatagramChannel) key.channel()) {
-            channel.disconnect();
-        } catch (IOException e) {
-            log.error("Failed to close channel", e);
-        }
-        writeQueueMap.remove(queueMapKey);
+        Optional.ofNullable(writeQueueMap.remove(queueMapKey))
+                .ifPresent(it -> log.info("Deregistered socket {}", socketAddress));
     }
 
     @Override

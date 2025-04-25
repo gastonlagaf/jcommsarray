@@ -1,5 +1,8 @@
-package com.gastonlagaf.udp.client.ice.model;
+package com.gastonlagaf.udp.client.ice.check;
 
+import com.gastonlagaf.udp.client.ice.model.*;
+import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
+import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import com.gastonlagaf.udp.turn.model.*;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +32,7 @@ public class Checklist {
 
     private final Integer retries;
 
-    private final CompletableFuture<IceConnectResult> future;
+    private final CompletableFuture<ConnectResult<IceProtocol>> future;
 
     private final AtomicReference<ChecklistState> state = new AtomicReference<>(ChecklistState.RUNNING);
 
@@ -39,7 +42,7 @@ public class Checklist {
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Checklist(Integer retries, IceSession iceSession, SortedSet<CandidatePair> pairs, CompletableFuture<IceConnectResult> future) {
+    public Checklist(Integer retries, IceSession iceSession, SortedSet<CandidatePair> pairs, CompletableFuture<ConnectResult<IceProtocol>> future) {
         this.iceSession = iceSession;
         if (pairs.isEmpty()) {
             throw new IllegalArgumentException("Pairs must not be empty");
@@ -50,7 +53,7 @@ public class Checklist {
         this.future = future;
     }
 
-    public CompletableFuture<IceConnectResult> check() {
+    public CompletableFuture<ConnectResult<IceProtocol>> check() {
         Iterator<CandidatePair> iterator = pairs.iterator();
         proceed(iterator);
         return future;
@@ -133,7 +136,7 @@ public class Checklist {
                         return;
                     }
                     state.set(ChecklistState.COMPLETED);
-                    IceConnectResult result = new IceConnectResult(
+                    ConnectResult<IceProtocol> result = new ConnectResult<>(
                             candidatePair.getOpponentCandidate().getActualAddress(),
                             candidatePair.getLocalCandidate().getIceProtocol()
                     );

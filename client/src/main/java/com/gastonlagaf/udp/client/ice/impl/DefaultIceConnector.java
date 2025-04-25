@@ -2,10 +2,12 @@ package com.gastonlagaf.udp.client.ice.impl;
 
 import com.gastonlagaf.udp.client.ice.IceConnector;
 import com.gastonlagaf.udp.client.ice.candidate.CandidateSpotter;
+import com.gastonlagaf.udp.client.ice.check.Checklist;
 import com.gastonlagaf.udp.client.ice.model.*;
 import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
 import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
 import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +31,7 @@ public class DefaultIceConnector implements IceConnector {
     @Getter
     private final SortedSet<Candidate> localCandidates;
 
-    private final CompletableFuture<IceConnectResult> future = new CompletableFuture<>();
+    private final CompletableFuture<ConnectResult<IceProtocol>> future = new CompletableFuture<>();
 
     public DefaultIceConnector(UdpSockets sockets, IceProperties iceProperties, ClientProperties clientProperties, CandidateTransferOperator candidateTransferOperator) {
         this.iceProperties = iceProperties;
@@ -41,7 +43,7 @@ public class DefaultIceConnector implements IceConnector {
     }
 
     @Override
-    public CompletableFuture<IceConnectResult> connect(String opponentId) {
+    public CompletableFuture<ConnectResult<IceProtocol>> connect(String opponentId) {
         log.info("Initiating connection with {} as {}", opponentId, iceSession.getRole());
         SortedSet<Candidate> targetCandidates = candidateTransferOperator.exchange(
                 iceProperties.getSourceContactId(), iceProperties.getTargetContactId(), localCandidates
@@ -50,14 +52,14 @@ public class DefaultIceConnector implements IceConnector {
     }
 
     @Override
-    public CompletableFuture<IceConnectResult> connect(String opponentId, SortedSet<Candidate> opponentCandidates) {
+    public CompletableFuture<ConnectResult<IceProtocol>> connect(String opponentId, SortedSet<Candidate> opponentCandidates) {
         log.info("Connecting to {} as {}", opponentId, iceSession.getRole());
         SortedSet<CandidatePair> candidatePairs = formPairs(localCandidates, opponentCandidates);
 
         Checklist checklist = new Checklist(iceProperties.getRetries(), iceSession, candidatePairs, future);
 
         return checklist.check().thenApply(it -> {
-            closeRedundantSockets(it.getIceProtocol());
+            closeRedundantSockets(it.getProtocol());
             return it;
         });
     }

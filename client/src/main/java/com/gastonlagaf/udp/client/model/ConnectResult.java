@@ -1,6 +1,6 @@
-package com.gastonlagaf.udp.client.ice.model;
+package com.gastonlagaf.udp.client.model;
 
-import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
+import com.gastonlagaf.udp.protocol.ClientProtocol;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -8,10 +8,10 @@ import java.net.InetSocketAddress;
 
 @Getter
 @RequiredArgsConstructor
-public class IceConnectResult {
+public class ConnectResult<T extends ClientProtocol<?>> {
 
     private final InetSocketAddress opponentAddress;
 
-    private final IceProtocol iceProtocol;
+    private final T protocol;
 
 }

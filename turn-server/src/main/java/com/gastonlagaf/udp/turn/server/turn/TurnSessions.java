@@ -1,5 +1,6 @@
 package com.gastonlagaf.udp.turn.server.turn;
 
+import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.exception.StunProtocolException;
 import com.gastonlagaf.udp.turn.model.ErrorCode;
 import com.gastonlagaf.udp.turn.model.Protocol;
@@ -27,6 +28,8 @@ public class TurnSessions {
 
     private static final String COLON = ":";
 
+    private final UdpSockets udpSockets;
+
     private final Integer startPort;
 
     private final Integer endPort;
@@ -39,11 +42,11 @@ public class TurnSessions {
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    public TurnSessions() {
-        this(MIN_ALLOCATABLE_PORT, MAX_ALLOCATABLE_PORT);
+    public TurnSessions(UdpSockets udpSockets) {
+        this(udpSockets, MIN_ALLOCATABLE_PORT, MAX_ALLOCATABLE_PORT);
     }
 
-    public TurnSessions(Integer startPort, Integer endPort) {
+    public TurnSessions(UdpSockets udpSockets, Integer startPort, Integer endPort) {
         if (startPort < MIN_ALLOCATABLE_PORT || startPort > MAX_ALLOCATABLE_PORT) {
             throw new ExceptionInInitializerError("Start port is out of range (" + MIN_ALLOCATABLE_PORT + " - " + MAX_ALLOCATABLE_PORT + ")");
         }
@@ -53,6 +56,7 @@ public class TurnSessions {
         if (endPort < startPort) {
             throw new ExceptionInInitializerError("Start port is greater than end port");
         }
+        this.udpSockets = udpSockets;
         this.startPort = startPort;
         this.endPort = endPort;
         this.sessions = Caffeine.newBuilder()
@@ -130,8 +134,8 @@ public class TurnSessions {
         if (null == turnSession) {
             return;
         }
-        turnSession.getSelectionKey().cancel();
         allocatedPorts.remove(turnSession.getServerAddress().getPort());
+        udpSockets.getRegistry().deregister(turnSession.getSelectionKey());
         log.info("Evicted turn server socket {}", turnSession.getServerAddress().toString());
     }
 

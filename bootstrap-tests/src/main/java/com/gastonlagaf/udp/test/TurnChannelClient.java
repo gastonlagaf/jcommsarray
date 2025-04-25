@@ -1,11 +1,9 @@
 package com.gastonlagaf.udp.test;
 
-import com.gastonlagaf.udp.client.stun.StunClientProtocol;
-import com.gastonlagaf.udp.client.stun.client.StunClient;
 import com.gastonlagaf.udp.discovery.InternetDiscovery;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.socket.UdpSockets;
-import com.gastonlagaf.udp.test.protocol.PureProtocol;
+import com.gastonlagaf.udp.client.protocol.PureProtocol;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
 
 import java.net.InetAddress;

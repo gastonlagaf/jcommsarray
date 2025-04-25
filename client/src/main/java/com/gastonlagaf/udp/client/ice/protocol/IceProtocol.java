@@ -1,8 +1,7 @@
 package com.gastonlagaf.udp.client.ice.protocol;
 
 import com.gastonlagaf.udp.client.UdpClient;
-import com.gastonlagaf.udp.client.ice.model.CandidatePair;
-import com.gastonlagaf.udp.client.ice.model.IceConnectResult;
+import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
 import com.gastonlagaf.udp.client.ice.model.IceSession;
 import com.gastonlagaf.udp.client.model.ClientProperties;
@@ -10,7 +9,6 @@ import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
 import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
-import com.gastonlagaf.udp.protocol.Protocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
@@ -29,15 +27,15 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
     private final IceSession iceSession;
 
-    private final CompletableFuture<IceConnectResult> future;
+    private final CompletableFuture<ConnectResult<IceProtocol>> future;
 
     private final MessageCodec codec = new MessageCodec();
 
-    public IceProtocol(UdpSockets sockets, IceSession iceSession, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+    public IceProtocol(UdpSockets sockets, IceSession iceSession, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
         this(NatBehaviour.NO_NAT, iceSession, sockets, clientProperties, future);
     }
 
-    public IceProtocol(NatBehaviour natBehaviour, IceSession iceSession, UdpSockets sockets, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+    public IceProtocol(NatBehaviour natBehaviour, IceSession iceSession, UdpSockets sockets, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
         super(natBehaviour, clientProperties, sockets);
         this.iceSession = iceSession;
         this.future = future;
@@ -74,8 +72,8 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
             if (shouldNominate && requestValid) {
                 Optional.ofNullable(future).ifPresent(it -> {
-                    IceConnectResult iceConnectResult = new IceConnectResult(senderAddress, this);
-                    it.complete(iceConnectResult);
+                    ConnectResult connectResult = new ConnectResult(senderAddress, this);
+                    it.complete(connectResult);
                 });
             }
         }

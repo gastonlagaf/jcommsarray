@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
@@ -19,10 +20,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -49,9 +48,10 @@ public class UdpSockets implements Closeable {
 
     @Override
     public void close() throws IOException {
-        registry.close();
-
+        workers.forEach(WorkerThread::close);
         workerThreads.shutdownNow();
+
+        registry.close();
 
         log.info("Sockets has been shut down");
     }
@@ -85,15 +85,17 @@ public class UdpSockets implements Closeable {
     }
 
     @RequiredArgsConstructor
-    class WorkerThread implements Runnable {
+    class WorkerThread implements Runnable, Closeable {
 
         private final ByteBuffer buffer = ByteBuffer.allocateDirect(574);
 
         private final Selector selector;
 
+        private final AtomicBoolean running = new AtomicBoolean(true);
+
         @Override
         public void run() {
-            while (selector.isOpen()) {
+            while (selector.isOpen() && running.get()) {
                 try {
                     Set<SelectionKey> selectedKeys = select();
                     Iterator<SelectionKey> iterator = selectedKeys.iterator();
@@ -117,6 +119,11 @@ public class UdpSockets implements Closeable {
                     log.error("", e.getMessage());
                 }
             }
+        }
+
+        @Override
+        public void close() {
+            running.set(false);
         }
 
         private Set<SelectionKey> select() {

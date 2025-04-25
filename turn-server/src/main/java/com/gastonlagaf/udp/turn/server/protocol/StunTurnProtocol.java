@@ -44,7 +44,7 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
 
     public StunTurnProtocol(UdpSockets udpSockets, StunServerProperties properties) {
         this.turnSessionsMap = properties.getEnableTurn()
-                ? properties.getIpAddresses().stream().collect(Collectors.toMap(Function.identity(), it -> new TurnSessions()))
+                ? properties.getIpAddresses().stream().collect(Collectors.toMap(Function.identity(), it -> new TurnSessions(udpSockets)))
                 : null;
 
         UdpChannelRegistry registry = udpSockets.getRegistry();

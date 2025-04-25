@@ -1,9 +1,7 @@
-package com.gastonlagaf.udp.test.protocol;
+package com.gastonlagaf.udp.client.protocol;
 
 import com.gastonlagaf.udp.client.UdpClient;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
-import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;

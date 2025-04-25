@@ -4,12 +4,10 @@ import com.gastonlagaf.udp.client.ice.exception.IceFailureException;
 import com.gastonlagaf.udp.client.ice.model.*;
 import com.gastonlagaf.udp.client.ice.protocol.IceProtocol;
 import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.StunClient;
-import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
-import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
-import com.gastonlagaf.udp.protocol.ClientProtocol;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.*;
-import java.nio.channels.SelectionKey;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,11 +33,11 @@ public class CandidateSpotter {
 
     private final AtomicInteger portCounter;
 
-    private final CompletableFuture<IceConnectResult> future;
+    private final CompletableFuture<ConnectResult<IceProtocol>> future;
 
     private final AtomicInteger localPreferenceCounter = new AtomicInteger(65000);
 
-    public CandidateSpotter(UdpSockets udpSockets, IceSession iceSession, IceProperties iceProperties, ClientProperties clientProperties, CompletableFuture<IceConnectResult> future) {
+    public CandidateSpotter(UdpSockets udpSockets, IceSession iceSession, IceProperties iceProperties, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
         this.iceSession = iceSession;
         this.iceProperties = iceProperties;
         this.clientProperties = clientProperties;
