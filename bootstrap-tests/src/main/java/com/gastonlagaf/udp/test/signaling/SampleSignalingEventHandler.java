@@ -35,8 +35,6 @@ public class SampleSignalingEventHandler implements SignalingEventHandler {
 
     private final UdpSockets sockets;
 
-    private final ClientProperties clientProperties;
-
     @Override
     public List<AddressCandidate> handleInvite(InviteEvent event) {
 //        log.info("Incoming connection request from {}", event.getUserId());
@@ -61,29 +59,30 @@ public class SampleSignalingEventHandler implements SignalingEventHandler {
 //        return iceConnector.getLocalCandidates().stream()
 //                .map(it -> new AddressCandidate(it.getPriority(), it.getType().name(), it.getActualAddress()))
 //                .toList();
-        new ClientBootstrap<PureProtocol>(sockets)
-                .withHostId("boba")
-                .connectTo("pupa")
+        SortedSet<Candidate> opponentCandidates = event.getAddresses().stream()
+                .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
+                .collect(Collectors.toCollection(TreeSet::new));
+        ClientBootstrap<PureProtocol> clientBootstrap = new ClientBootstrap<PureProtocol>(sockets)
+                .as(IceRole.CONTROLLED)
+                .withHostId("pupa")
+                .connectTo("boba")
                 .useSignaling(URI.create("ws://45.129.186.80:8080/ws"))
                 .useStun(new InetSocketAddress("45.129.186.80", 3478))
                 .useTurn(new InetSocketAddress("45.129.186.80", 3478))
-                .mapEstablishedConnection(it -> new PureProtocol(it, false))
-                .connect()
-                .thenAccept(it -> {
-                    PureProtocol protocol = it.getProtocol();
-                    Instant start = Instant.now();
-                    for (int i = 0; i < 60; i++) {
-                        protocol.getClient().send(it.getOpponentAddress(), "Ping " + i).join();
-                    }
-                    Instant end = Instant.now();
-                    Duration duration = Duration.between(start, end);
-                    log.info("Sent 60 frames in {} ms", duration.toMillis());
-                    try {
-                        protocol.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).join();
+                .mapEstablishedConnection(it -> {
+                    log.info("Established connection: {}", it);
+                    return new PureProtocol(it, true);
+                });
+
+        clientBootstrap.connect(opponentCandidates).thenAcceptAsync(it -> {
+                try {
+                    System.in.read();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+        });
+
+        return clientBootstrap.getAddressCandidates();
     }
 
     @Override

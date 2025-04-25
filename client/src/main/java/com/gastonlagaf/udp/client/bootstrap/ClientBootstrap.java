@@ -4,6 +4,7 @@ import com.gastonlagaf.signaling.model.AddressCandidate;
 import com.gastonlagaf.signaling.model.SignalingSubscriber;
 import com.gastonlagaf.udp.client.ice.IceConnector;
 import com.gastonlagaf.udp.client.ice.impl.DefaultIceConnector;
+import com.gastonlagaf.udp.client.ice.model.Candidate;
 import com.gastonlagaf.udp.client.ice.model.IceProperties;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
 import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
@@ -114,7 +115,6 @@ public class ClientBootstrap<T extends ClientProtocol<?>> {
     }
 
     public List<AddressCandidate> getAddressCandidates() {
-
         if (null == iceConnector) {
             validateIceBootstrap();
 
@@ -125,10 +125,23 @@ public class ClientBootstrap<T extends ClientProtocol<?>> {
                 .toList();
     }
 
+    public CompletableFuture<ConnectResult<T>> connect(SortedSet<Candidate> candidates) {
+        validate();
+        if (null == opponentId) {
+            throw new IllegalArgumentException("Bootstrap is not configured for ice connection");
+        }
+        IceConnector iceConnector = Optional.ofNullable(this.iceConnector).orElseGet(this::initiateIceConnector);
+        return iceConnector.connect(opponentId, candidates)
+                .thenApplyAsync(it -> {
+                    T protocol = connectionMapper.apply(it.getProtocol());
+                    return new ConnectResult<>(it.getOpponentAddress(), protocol);
+                });
+    }
+
     public CompletableFuture<ConnectResult<T>> connect() {
         validate();
         if (null != opponentId) {
-            IceConnector iceConnector = initiateIceConnector();
+            IceConnector iceConnector = Optional.ofNullable(this.iceConnector).orElseGet(this::initiateIceConnector);
             return iceConnector.connect(opponentId)
                     .thenApplyAsync(it -> {
                         T protocol = connectionMapper.apply(it.getProtocol());
@@ -178,7 +191,9 @@ public class ClientBootstrap<T extends ClientProtocol<?>> {
     }
 
     private IceConnector initiateIceConnector() {
-        CandidateTransferOperator transferOperator = Optional.ofNullable(candidateTransferOperator)
+        CandidateTransferOperator transferOperator = Optional.of(iceRole)
+                .filter(IceRole.CONTROLLING::equals)
+                .flatMap(it -> Optional.ofNullable(candidateTransferOperator))
                 .orElseGet(this::initiateDefaultCandidateTransferOperator);
 
         IceProperties iceProperties = new IceProperties(

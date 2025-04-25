@@ -36,6 +36,7 @@ public class IceInitiator {
         sockets.start();
 
         new ClientBootstrap<PureProtocol>(sockets)
+                .as(IceRole.CONTROLLING)
                 .withHostId("boba")
                 .connectTo("pupa")
                 .useSignaling(URI.create("ws://45.129.186.80:8080/ws"))

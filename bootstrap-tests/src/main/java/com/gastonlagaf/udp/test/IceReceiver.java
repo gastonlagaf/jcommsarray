@@ -23,18 +23,8 @@ public class IceReceiver {
         UdpSockets sockets = new UdpSockets(1);
         sockets.start();
 
-        InetAddress hostIp = InternetDiscovery.getAddress();
-        ClientProperties clientProperties = new ClientProperties(
-                new InetSocketAddress(hostIp, 5128),
-                new InetSocketAddress(hostIp, 5129),
-                new InetSocketAddress("45.129.186.80", 3478),
-                new InetSocketAddress("45.129.186.80", 3478),
-//                null,
-                5000L
-        );
-
         SignalingProperties signalingProperties = new SignalingProperties(URI.create("ws://45.129.186.80:8080/ws"), Duration.ofSeconds(20L));
-        SignalingEventHandler eventHandler = new SampleSignalingEventHandler(sockets, clientProperties);
+        SignalingEventHandler eventHandler = new SampleSignalingEventHandler(sockets);
         SignalingClient signalingClient = new DefaultSignalingClient(signalingProperties, new SignalingSubscriber("pupa", List.of()), eventHandler);
 
         System.out.println("Initiated signaling client. Awaiting for connection requests...");

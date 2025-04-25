@@ -70,26 +70,15 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
             Boolean requestValid = respond(receiverAddress, senderAddress, packet);
 
+            System.out.println(iceSession.getRole());
             if (shouldNominate && requestValid) {
                 Optional.ofNullable(future).ifPresent(it -> {
-                    ConnectResult connectResult = new ConnectResult(senderAddress, this);
+                    ConnectResult<IceProtocol> connectResult = new ConnectResult<>(senderAddress, this);
                     it.complete(connectResult);
                 });
             }
         }
         return new UdpPacketHandlerResult();
-    }
-
-    public <P extends ClientProtocol<?>> P assign(P protocol) {
-        if (!selectionKey.isValid()) {
-            throw new IllegalStateException("Selection key is invalid");
-        }
-        if (this.getClient() instanceof TurnProxy<Message> turnProxy) {
-            TurnClientProtocol turnClientProtocol = new TurnClientProtocol(sockets, protocol, clientProperties);
-        } else {
-            sockets.getRegistry().switchProtocol(selectionKey, protocol);
-        }
-        return protocol;
     }
 
     private Boolean respond(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, Message packet) {
