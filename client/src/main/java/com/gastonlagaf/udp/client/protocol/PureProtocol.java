@@ -13,6 +13,8 @@ import java.nio.ByteBuffer;
 @Slf4j
 public class PureProtocol extends BaseClientProtocol<String> {
 
+    private static final String RESPONSE_APPENDIX = " Response";
+
     private final Boolean shouldReply;
 
     public PureProtocol(UdpSockets udpSockets, NatBehaviour natBehaviour, ClientProperties clientProperties, Boolean shouldReply) {
@@ -27,7 +29,7 @@ public class PureProtocol extends BaseClientProtocol<String> {
 
     @Override
     protected String getCorrelationId(String message) {
-        return "";
+        return message;
     }
 
     @Override
@@ -51,7 +53,13 @@ public class PureProtocol extends BaseClientProtocol<String> {
     public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, String packet) {
         log.info("Received message: {}", packet);
         if (shouldReply) {
-            client.send(receiverAddress, senderAddress, packet + " Response");
+            client.send(receiverAddress, senderAddress, packet + RESPONSE_APPENDIX);
+        } else {
+            int appendixIndex = packet.indexOf(RESPONSE_APPENDIX);
+            if (-1 != appendixIndex) {
+                String correlationId = packet.substring(0, appendixIndex);
+                pendingMessages.complete(correlationId, packet);
+            }
         }
         return new UdpPacketHandlerResult();
     }

@@ -70,7 +70,6 @@ public class IceProtocol extends BaseClientProtocol<Message> {
 
             Boolean requestValid = respond(receiverAddress, senderAddress, packet);
 
-            System.out.println(iceSession.getRole());
             if (shouldNominate && requestValid) {
                 Optional.ofNullable(future).ifPresent(it -> {
                     ConnectResult<IceProtocol> connectResult = new ConnectResult<>(senderAddress, this);

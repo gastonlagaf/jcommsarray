@@ -9,4 +9,5 @@ include 'bootstrap-tests'
 include 'signaling-model'
 include 'signaling-server'
 include 'signaling-server-test'
+include 'connection-utility'
 
