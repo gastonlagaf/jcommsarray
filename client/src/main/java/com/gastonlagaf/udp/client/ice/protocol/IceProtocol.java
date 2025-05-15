@@ -5,10 +5,7 @@ import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
 import com.gastonlagaf.udp.client.ice.model.IceSession;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
-import com.gastonlagaf.udp.client.turn.TurnClientProtocol;
-import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
-import com.gastonlagaf.udp.protocol.ClientProtocol;
+import com.gastonlagaf.udp.client.protocol.TurnAwareClientProtocol;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.codec.impl.MessageCodec;
@@ -23,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class IceProtocol extends BaseClientProtocol<Message> {
+public class IceProtocol extends TurnAwareClientProtocol<Message> {
 
     private final IceSession iceSession;
 

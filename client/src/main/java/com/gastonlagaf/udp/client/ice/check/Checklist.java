@@ -77,10 +77,8 @@ public class Checklist {
         candidatePair.setState(CandidatePairState.IN_PROGRESS);
     }
 
-    private Message handleCheckResponse(Message response, Throwable ex, CandidatePair candidatePair) {
-        if (!validList.isEmpty()) {
-            candidatePair.setState(CandidatePairState.FAILED);
-        } else if (null != ex) {
+    private synchronized Message handleCheckResponse(Message response, Throwable ex, CandidatePair candidatePair) {
+        if (null != ex) {
             log.warn("Got error while checking pair {} - {}: {}", candidatePair.getLocalCandidate().getActualAddress(), candidatePair.getOpponentCandidate().getActualAddress(), ex.getMessage());
             int retriesRemaining = retryCounters.computeIfAbsent(
                     candidatePair.getPriority(), key -> new AtomicInteger(retries)

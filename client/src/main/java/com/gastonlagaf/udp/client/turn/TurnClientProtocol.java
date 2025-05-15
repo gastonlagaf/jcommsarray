@@ -2,7 +2,7 @@ package com.gastonlagaf.udp.client.turn;
 
 import com.gastonlagaf.udp.client.UdpClient;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.protocol.TurnAwareClientProtocol;
 import com.gastonlagaf.udp.client.turn.client.TurnClient;
 import com.gastonlagaf.udp.client.turn.client.impl.TurnUdpClient;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
@@ -19,7 +19,7 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
 
-public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
+public class TurnClientProtocol<T> extends TurnAwareClientProtocol<Message> {
 
     private static final Set<MessageType> RESPONSE_MESSAGE_TYPES = Set.of(
             MessageType.BINDING_REQUEST,
@@ -55,7 +55,7 @@ public class TurnClientProtocol<T> extends BaseClientProtocol<Message> {
     @Override
     protected UdpClient<Message> createUdpClient(UdpClient<Message> udpClient) {
         this.channelBindings = new HashMap<>();
-        return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), clientProperties.getTurnAddress(), this.channelBindings);
+        return new TurnUdpClient(udpClient, clientProperties.getHostAddress(), this.channelBindings);
     }
 
     @Override

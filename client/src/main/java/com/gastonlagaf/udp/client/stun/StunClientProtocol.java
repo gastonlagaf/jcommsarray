@@ -2,7 +2,7 @@ package com.gastonlagaf.udp.client.stun;
 
 import com.gastonlagaf.udp.client.UdpClient;
 import com.gastonlagaf.udp.client.model.ClientProperties;
-import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.protocol.TurnAwareClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.impl.UdpStunClient;
 import com.gastonlagaf.udp.codec.CommunicationCodec;
 import com.gastonlagaf.udp.protocol.model.UdpPacketHandlerResult;
@@ -15,7 +15,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HexFormat;
 
-public class StunClientProtocol extends BaseClientProtocol<Message> {
+public class StunClientProtocol extends TurnAwareClientProtocol<Message> {
 
     private final CommunicationCodec<Message> codec = new MessageCodec();
 

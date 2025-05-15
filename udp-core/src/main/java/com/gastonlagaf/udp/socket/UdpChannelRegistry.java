@@ -1,5 +1,6 @@
 package com.gastonlagaf.udp.socket;
 
+import com.gastonlagaf.udp.exception.SocketRegistrationException;
 import com.gastonlagaf.udp.protocol.Protocol;
 import com.gastonlagaf.udp.socket.model.UdpSocketAttachment;
 import com.gastonlagaf.udp.socket.model.UdpWriteEntry;
@@ -8,14 +9,13 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 
 @Slf4j
 @Getter(AccessLevel.PACKAGE)
@@ -96,7 +96,7 @@ public class UdpChannelRegistry implements ChannelRegistry {
     public SelectionKey register(String id, InetSocketAddress inetSocketAddress, Protocol<?> protocol) {
         String queueMapKey = inetSocketAddress.getHostName() + ":" + inetSocketAddress.getPort();
         if (writeQueueMap.containsKey(queueMapKey)) {
-            throw new IllegalArgumentException("Address already bound: " + inetSocketAddress);
+            throw new SocketRegistrationException(inetSocketAddress);
         }
 
         UdpSocketAttachment attachment = new UdpSocketAttachment(id, inetSocketAddress, protocol);
@@ -134,9 +134,11 @@ public class UdpChannelRegistry implements ChannelRegistry {
             channel = DatagramChannel.open();
             channel.bind(inetSocketAddress);
             channel.configureBlocking(false);
-        } catch (IOException e) {
-            log.error("Failed to bind to {}", inetSocketAddress, e);
-            throw new RuntimeException(e);
+        } catch (IOException ex) {
+            log.error("Failed to bind to {}", inetSocketAddress, ex);
+            throw (ex instanceof BindException)
+                    ? new SocketRegistrationException(inetSocketAddress)
+                    : new RuntimeException(ex);
         }
         return channel;
     }

@@ -1,6 +1,6 @@
 apply plugin: 'java-library'
 
-group = rootProject.group
+group = rootProject.group + ".udp"
 
 dependencies {
     implementation project(":signaling-model")

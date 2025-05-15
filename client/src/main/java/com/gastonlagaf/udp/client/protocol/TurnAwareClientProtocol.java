@@ -26,7 +26,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
+public abstract class TurnAwareClientProtocol<T> implements ClientProtocol<T> {
 
     private static final Set<NatBehaviour> TURN_REQUIRED_NAT_BEHAVIOURS = Set.of(
             NatBehaviour.ADDRESS_DEPENDENT, NatBehaviour.ADDRESS_AND_PORT_DEPENDENT
@@ -46,11 +46,11 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
 
     private final TurnClientProtocol<T> turnClientProtocol;
 
-    public BaseClientProtocol(UdpSockets sockets) {
+    public TurnAwareClientProtocol(UdpSockets sockets) {
         this(null, null, sockets);
     }
 
-    public BaseClientProtocol(BaseClientProtocol<?> baseProtocol) {
+    public TurnAwareClientProtocol(TurnAwareClientProtocol<?> baseProtocol) {
         this.clientProperties = baseProtocol.clientProperties;
         this.natBehaviour = baseProtocol.natBehaviour;
         this.sockets = baseProtocol.sockets;
@@ -76,7 +76,7 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
         );
     }
 
-    public BaseClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, UdpSockets sockets) {
+    public TurnAwareClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, UdpSockets sockets) {
         this.clientProperties = Optional.ofNullable(clientProperties).orElseGet(this::getClientProperties);
         this.natBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
         this.sockets = sockets;
@@ -117,7 +117,7 @@ public abstract class BaseClientProtocol<T> implements ClientProtocol<T> {
     }
 
     private ClientProperties getClientProperties() {
-        InputStream propertiesStream = BaseClientProtocol.class.getClassLoader().getResourceAsStream("udp-client.properties");
+        InputStream propertiesStream = TurnAwareClientProtocol.class.getClassLoader().getResourceAsStream("udp-client.properties");
         Properties properties = new Properties();
         try {
             properties.load(propertiesStream);

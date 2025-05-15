@@ -103,9 +103,10 @@ public class StunTurnProtocol implements Protocol<ContexedMessage> {
             Message errorMessage = new Message(packet.getHeader().getType(), packet.getHeader().getTransactionId(), spe);
             ByteBuffer serializedErrorMessage = messageCodec.encode(errorMessage);
             sockets.send(receiverAddress, senderAddress, serializedErrorMessage);
+            log.error("", spe);
             return new UdpPacketHandlerResult();
         } catch (Exception e) {
-            log.error("Error handling incoming message " + packet.getHeader().getType(), e);
+            log.error("Error handling incoming message {}", packet.getHeader().getType(), e);
             return null;
         }
     }

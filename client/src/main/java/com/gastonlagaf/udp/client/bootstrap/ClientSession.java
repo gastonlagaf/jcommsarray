@@ -6,10 +6,9 @@ import com.gastonlagaf.udp.client.ice.impl.DefaultIceConnector;
 import com.gastonlagaf.udp.client.ice.model.Candidate;
 import com.gastonlagaf.udp.client.ice.model.IceProperties;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
-import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.model.ConnectResult;
-import com.gastonlagaf.udp.client.protocol.BaseClientProtocol;
+import com.gastonlagaf.udp.client.protocol.TurnAwareClientProtocol;
 import com.gastonlagaf.udp.client.protocol.ProtocolInitializer;
 import com.gastonlagaf.udp.client.protocol.PureProtocol;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
@@ -36,7 +35,7 @@ public class ClientSession<T extends ClientProtocol<?>> {
 
     private IceConnector iceConnector;
 
-    private Function<BaseClientProtocol<?>, T> connectionMapper;
+    private Function<TurnAwareClientProtocol<?>, T> connectionMapper;
 
     public ClientSession<T> as(IceRole iceRole) {
         this.iceRole = iceRole;
@@ -53,7 +52,7 @@ public class ClientSession<T extends ClientProtocol<?>> {
         return this;
     }
 
-    public ClientSession<T> mapEstablishedConnection(Function<BaseClientProtocol<?>, T> connectionMapper) {
+    public ClientSession<T> mapEstablishedConnection(Function<TurnAwareClientProtocol<?>, T> connectionMapper) {
         this.connectionMapper = connectionMapper;
         return this;
     }
@@ -96,15 +95,15 @@ public class ClientSession<T extends ClientProtocol<?>> {
                     });
         }
 
-        BaseClientProtocol<?> baseClientProtocol = getBaseClientProtocol();
-        return CompletableFuture.completedFuture(baseClientProtocol)
+        TurnAwareClientProtocol<?> turnAwareClientProtocol = getBaseClientProtocol();
+        return CompletableFuture.completedFuture(turnAwareClientProtocol)
                 .thenApply(it -> {
                     T protocol = connectionMapper.apply(it);
                     return new ConnectResult<>(targetAddress, protocol);
                 });
     }
 
-    private BaseClientProtocol<?> getBaseClientProtocol() {
+    private TurnAwareClientProtocol<?> getBaseClientProtocol() {
         ProtocolInitializer protocolInitializer = new ProtocolInitializer(40000, 60000);
         ClientProperties clientProperties = new ClientProperties(
                 null,

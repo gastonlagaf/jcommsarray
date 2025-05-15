@@ -8,6 +8,7 @@ import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.StunClient;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
+import com.gastonlagaf.udp.exception.SocketRegistrationException;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,10 @@ import java.io.UncheckedIOException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,19 +53,16 @@ public class CandidateSpotter {
     public SortedSet<Candidate> search() {
         List<Candidate> hostCandidates = searchHostCandidates();
 
-        TreeSet<Candidate> result = new TreeSet<>();
-        result.addAll(hostCandidates);
+        TreeSet<Candidate> result = new TreeSet<>(hostCandidates);
 
         if (result.isEmpty()) {
-            throw new IceFailureException("No candidates found");
+            throw new IceFailureException("No local candidates found");
         }
 
-        Candidate localCandidate = result.first();
-
-        List<Candidate> peerReflexiveCandidates = searchPeerReflexiveCandidates(localCandidate);
+        List<Candidate> peerReflexiveCandidates = search(hostCandidates, CandidateType.PEER_REFLEXIVE);
         result.addAll(peerReflexiveCandidates);
 
-        List<Candidate> serverReflexiveCandidates = searchServerReflexiveCandidates(localCandidate);
+        List<Candidate> serverReflexiveCandidates = search(hostCandidates, CandidateType.SERVER_REFLEXIVE);
         result.addAll(serverReflexiveCandidates);
 
         return result;
@@ -85,29 +86,27 @@ public class CandidateSpotter {
                 .toList();
     }
 
-    private List<Candidate> searchPeerReflexiveCandidates(Candidate localCandidate) {
-        if (null == clientProperties.getStunAddress()) {
+    private List<Candidate> search(List<Candidate> localCandidates, CandidateType candidateType) {
+        if (null == candidateType || CandidateType.HOST.equals(candidateType)) {
+            throw new IllegalArgumentException("Only stun and turn candidates required");
+        }
+        InetSocketAddress targetAddress = CandidateType.SERVER_REFLEXIVE.equals(candidateType)
+                ? clientProperties.getTurnAddress()
+                : clientProperties.getStunAddress();
+        if (null == targetAddress) {
             return List.of();
         }
-        Candidate candidate = bind(
-                localCandidate.getHostAddress().getAddress(),
-                CandidateType.PEER_REFLEXIVE,
-                localPreferenceCounter.getAndDecrement()
-        );
-        return List.of(candidate);
-    }
-
-    private List<Candidate> searchServerReflexiveCandidates(Candidate localCandidate) {
-        if (null == clientProperties.getTurnAddress()) {
-            return List.of();
+        for (Candidate localCandidate : localCandidates) {
+            Candidate candidate = bind(
+                    localCandidate.getHostAddress().getAddress(),
+                    candidateType,
+                    localPreferenceCounter.getAndDecrement()
+            );
+            if (null != candidate) {
+                return List.of(candidate);
+            }
         }
-
-        Candidate candidate = bind(
-                localCandidate.getHostAddress().getAddress(),
-                CandidateType.SERVER_REFLEXIVE,
-                localPreferenceCounter.getAndDecrement()
-        );
-        return List.of(candidate);
+        return List.of();
     }
 
     private List<InetAddress> introspectNetworkInterface(NetworkInterface networkInterface) throws SocketException {
@@ -145,8 +144,11 @@ public class CandidateSpotter {
         try (StunClientProtocol stunClientProtocol = new StunClientProtocol(udpSockets, localProperties)) {
             stunClientProtocol.start();
             actualAddress = ((StunClient) stunClientProtocol.getClient()).getReflexiveAddress();
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
+        } catch (Exception ex) {
+            if (ex instanceof SocketRegistrationException srex) {
+                throw srex;
+            }
+            return null;
         }
 
         IceProtocol iceProtocol = new IceProtocol(udpSockets, iceSession, localProperties, future);
@@ -172,7 +174,14 @@ public class CandidateSpotter {
                 : NatBehaviour.NO_NAT;
 
         IceProtocol iceProtocol = new IceProtocol(natBehaviour, iceSession, udpSockets, localProperties, future);
-        iceProtocol.start();
+        try {
+            iceProtocol.start();
+        } catch (Exception ex) {
+            if (ex instanceof SocketRegistrationException srex) {
+                throw srex;
+            }
+            return null;
+        }
 
         InetSocketAddress actualAddress = CandidateType.SERVER_REFLEXIVE.equals(type)
                 ? ((TurnProxy<?>) iceProtocol.getClient()).getProxyAddress()

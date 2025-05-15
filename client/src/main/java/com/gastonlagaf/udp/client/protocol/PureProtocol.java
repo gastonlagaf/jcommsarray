@@ -11,7 +11,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 @Slf4j
-public class PureProtocol extends BaseClientProtocol<String> {
+public class PureProtocol extends TurnAwareClientProtocol<String> {
 
     private static final String RESPONSE_APPENDIX = " Response";
 
@@ -22,7 +22,7 @@ public class PureProtocol extends BaseClientProtocol<String> {
         this.shouldReply = shouldReply;
     }
 
-    public PureProtocol(BaseClientProtocol<?> baseProtocol, Boolean shouldReply) {
+    public PureProtocol(TurnAwareClientProtocol<?> baseProtocol, Boolean shouldReply) {
         super(baseProtocol);
         this.shouldReply = shouldReply;
     }

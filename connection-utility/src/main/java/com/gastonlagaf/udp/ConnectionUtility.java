@@ -65,9 +65,19 @@ public class ConnectionUtility {
     private static ClientBootstrap<PureProtocol> createClientBootstrap(UdpSockets udpSockets) {
         ClientBootstrap<PureProtocol> clientBootstrap = new ClientBootstrap<>(udpSockets);
 
-        Optional.ofNullable(System.getenv("SIGNALING_SERVER")).ifPresent(value -> clientBootstrap.useSignaling(URI.create(value)));
-        Optional.ofNullable(System.getenv("STUN_SERVER")).ifPresent(value -> clientBootstrap.useStun(new InetSocketAddress(value, 3478)));
-        Optional.ofNullable(System.getenv("TURN_SERVER")).ifPresent(value -> clientBootstrap.useTurn(new InetSocketAddress(value, 3478)));
+        Optional.ofNullable(System.getenv("SIGNALING_SERVER"))
+                .map(URI::create)
+                .ifPresent(clientBootstrap::useSignaling);
+        Optional.ofNullable(System.getenv("STUN_SERVER"))
+                .map(value -> new InetSocketAddress(value, 3478))
+                .ifPresent(clientBootstrap::useStun);
+        Optional.ofNullable(System.getenv("TURN_SERVER"))
+                .map(value -> new InetSocketAddress(value, 3478))
+                .ifPresent(clientBootstrap::useTurn);
+        Optional.ofNullable(System.getenv("SOCKET_TIMEOUT"))
+                .map(Long::valueOf)
+                .map(Duration::ofMillis)
+                .ifPresent(clientBootstrap::useSocketTimeout);
         Optional.ofNullable(System.getenv("HOST_ID")).ifPresent(clientBootstrap::withHostId);
 
         return clientBootstrap;
@@ -86,7 +96,7 @@ public class ConnectionUtility {
                 eventHandler
         );
 
-        System.in.read();
+        Thread.currentThread().join();
     }
 
     private static void initiatorMode(ClientBootstrap<PureProtocol> clientBootstrap, String opponentId, InetSocketAddress targetAddress) {
@@ -115,6 +125,7 @@ public class ConnectionUtility {
     }
 
     private static SignalingEventHandler getSignalingEventHandler(ClientBootstrap<PureProtocol> clientBootstrap) {
+
         return new SignalingEventHandler() {
 
             @Override
@@ -147,6 +158,7 @@ public class ConnectionUtility {
 
             }
         };
+        
     }
 
 }

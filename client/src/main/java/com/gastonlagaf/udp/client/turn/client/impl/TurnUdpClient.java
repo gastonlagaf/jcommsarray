@@ -38,7 +38,7 @@ public class TurnUdpClient extends UdpClientDelegate<Message> implements TurnCli
 
     private InetSocketAddress targetAddress;
 
-    public TurnUdpClient(UdpClient<Message> udpClient, InetSocketAddress sourceAddress, InetSocketAddress turnAddress, Map<Integer, InetSocketAddress> channelBindings) {
+    public TurnUdpClient(UdpClient<Message> udpClient, InetSocketAddress sourceAddress, Map<Integer, InetSocketAddress> channelBindings) {
         super(udpClient);
         this.sourceAddress = sourceAddress;
         this.channelBindings = channelBindings;

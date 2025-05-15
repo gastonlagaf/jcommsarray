@@ -38,16 +38,6 @@ public class PureClient {
 
         PureProtocol pureProtocol = new PureProtocol(sockets, NatBehaviour.NO_NAT, clientProperties, true);
         pureProtocol.start();
-
-        // Hole Punch
-//        InetSocketAddress socketAddress = new InetSocketAddress("45.129.186.80", 49155);
-//        for (int i = 0; i < 10; i++) {
-//            String message = "Ping " + i;
-//            pureProtocol.getClient().send(socketAddress, message);
-//            Thread.sleep(500L);
-//        }
-
-//        pureProtocol.close();
     }
 
 }
