@@ -1,8 +1,8 @@
-# Project [NAME UNKNOWN]
+# UDP Toolkit
 
 ## About
 
-[NAME UNKNOWN] is a stack of modules, aimed to be a framework for application's 
+UDP Toolkit is a stack of modules, aimed to be a framework for application's 
 network communication via UDP transport protocol. It includes server solutions 
 for connection establishment, like STUN and TURN server, and sort of SIP server for
 discovered addresses exchange between peers. And also client module provided, which 
