@@ -1,4 +1,4 @@
-group = rootProject.group + ".stun"
+group = rootProject.group + ".turn"
 
 jar {
     dependsOn configurations.runtimeClasspath

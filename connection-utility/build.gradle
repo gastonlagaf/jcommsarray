@@ -1,9 +1,9 @@
 apply plugin: 'application'
 
-group = rootProject.group + ".udp"
+group = rootProject.group + ".test"
 
 application {
-    mainClass = "com.gastonlagaf.udp.ConnectionUtility"
+    mainClass = "com.jcommsarray.test.ConnectionUtility"
 }
 
 dependencies {

@@ -1,1 +1,1 @@
-group = rootProject.group + ".udp"
+group = rootProject.group + ".turn"
