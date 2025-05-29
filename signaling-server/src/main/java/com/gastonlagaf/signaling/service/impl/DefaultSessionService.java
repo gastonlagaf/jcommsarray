@@ -33,6 +33,9 @@ public class DefaultSessionService implements SessionService {
                 .filter(it -> it.getHostId().equals(hostId))
                 .map(it -> {
                     for (String subscriberId: it.getParticipantIds()) {
+                        if (subscriberId.equals(hostId)) {
+                            continue;
+                        }
                         signalingSubscriberService.send(subscriberId, new ClosingEvent(it.getId(), hostId));
                     }
                     datastore.remove(it);
@@ -44,9 +47,9 @@ public class DefaultSessionService implements SessionService {
     @Override
     public Session invite(String id, String hostId, InviteEvent inviteEvent) {
         return datastore.findById(id)
-                .filter(it -> it.getHostId().equals(hostId))
+                .filter(it -> it.getHostId().equals(hostId) || it.getParticipantIds().contains(hostId))
                 .map(it -> {
-                    SignalingSubscriber targetSubscriber = getSubscriber(it.getId(), inviteEvent.getUserId());
+                    getSubscriber(it.getId(), inviteEvent.getUserId());
                     it.getParticipantIds().add(inviteEvent.getUserId());
                     Session result = datastore.save(it);
                     signalingSubscriberService.send(inviteEvent.getUserId(), new InviteEvent(it.getId(), it.getHostId(), inviteEvent.getAddresses()));
@@ -72,6 +75,7 @@ public class DefaultSessionService implements SessionService {
         return datastore.findById(id)
                 .filter(it -> it.getParticipantIds().contains(subscriberId))
                 .map(it -> {
+                    it.getParticipantIds().remove(subscriberId);
                     signalingSubscriberService.send(it.getHostId(), new CancelEvent(it.getId(), subscriberId, "Invite rejected"));
                     return it;
                 })

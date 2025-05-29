@@ -65,7 +65,7 @@ bypass procedures. Below is initialization example with full set of available
 arguments
 
 ```java
-ClientBootstrap<PureProtocol> clientBootstrap = new ClientBootstrap<PureProtocol>(sockets)
+ClientBootstrap<PureProtocol> exchangeSession = new ClientBootstrap<PureProtocol>(sockets)
         .withHostId("test_initiator")
         .useSignaling(URI.create("ws://178.13.28.131:8080/ws"))
         .useStun(new InetSocketAddress("95.174.88.11", 3478))
@@ -78,12 +78,12 @@ From client bootstrap you now have access to connection procedure, creating
 **_ClientSession_** instance.
 
 ```java
-ClientSession<PureProtocol> clientSession = new ClientSession<>(clientBootstrap)
+ClientSession<PureProtocol> peerConnection = new ClientSession<>(exchangeSession)
         .as(IceRole.CONTROLLING) // or IceRole.CONTROLLED, if it is receiving peer  
         .connectTo("test_receiver")
         .mapEstablishedConnection(it -> new PureProtocol(it, false));
 
-ConnectResult<PureProtocol> connectResult = clientSession.connect().join();
+ConnectResult<PureProtocol> connectResult = peerConnection.connect().join();
 PureProtocol pureProtocol = connectResult.getProtocol();
 
 // Send Packet

@@ -4,20 +4,25 @@ import com.gastonlagaf.signaling.model.AddressCandidate;
 import com.gastonlagaf.signaling.model.ClosingEvent;
 import com.gastonlagaf.signaling.model.InviteEvent;
 import com.gastonlagaf.signaling.model.SignalingSubscriber;
-import com.gastonlagaf.udp.client.bootstrap.ClientBootstrap;
-import com.gastonlagaf.udp.client.bootstrap.ClientSession;
+import com.gastonlagaf.udp.client.bootstrap.*;
 import com.gastonlagaf.udp.client.ice.model.Candidate;
 import com.gastonlagaf.udp.client.ice.model.CandidateType;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
+import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
+import com.gastonlagaf.udp.client.ice.transfer.impl.DefaultCandidateTransferOperator;
+import com.gastonlagaf.udp.client.model.ClientProperties;
+import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.model.SignalingProperties;
 import com.gastonlagaf.udp.client.protocol.PureProtocol;
 import com.gastonlagaf.udp.client.signaling.SignalingClient;
 import com.gastonlagaf.udp.client.signaling.SignalingEventHandler;
 import com.gastonlagaf.udp.client.signaling.impl.DefaultSignalingClient;
 import com.gastonlagaf.udp.socket.UdpSockets;
+import com.gastonlagaf.udp.turn.model.NatBehaviour;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -33,25 +38,31 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ConnectionUtility {
 
+    private static final String HOST_ID = "HOST_ID";
+    private static final String OPPONENT_ID = "OPPONENT_ID";
+    private static final String STUN_SERVER = "STUN_SERVER";
+    private static final String TURN_SERVER = "TURN_SERVER";
+    private static final String SOCKET_TIMEOUT = "SOCKET_TIMEOUT";
+    private static final String TARGET_ADDRESS = "TARGET_ADDRESS";
+    private static final String TARGET_PORT = "TARGET_PORT";
+    private static final String SIGNALING_SERVER = "SIGNALING_SERVER";
+    private static final String PACKETS_QUANTITY = "PACKETS_QUANTITY";
+    private static final String PACKETS_SEND_INTERVAL = "PACKETS_SEND_INTERVAL";
+
     public static void main(String[] args) {
         UdpSockets udpSockets = new UdpSockets(1);
         udpSockets.start();
 
-        ClientBootstrap<PureProtocol> bootstrap = createClientBootstrap(udpSockets);
+        String hostId = System.getenv(HOST_ID);
+        ExchangeSession<PureProtocol> bootstrap = createExchangeSession(hostId, udpSockets);
 
-        String opponentId = System.getenv("OPPONENT_ID");
-        InetSocketAddress targetAddress = Optional.ofNullable(System.getenv("TARGET_ADDRESS"))
-                .flatMap(
-                        it -> Optional.ofNullable(System.getenv("TARGET_PORT"))
-                                .map(Integer::parseInt)
-                                .map(ij -> new InetSocketAddress(it, ij))
-                )
-                .orElse(null);
+        String opponentId = System.getenv(OPPONENT_ID);
+        InetSocketAddress targetAddress = getTargetAddress();
 
         if (null == opponentId && null == targetAddress) {
-            receiverMode(bootstrap);
+            receiverMode(hostId, udpSockets, bootstrap);
         } else {
-            initiatorMode(bootstrap, opponentId, targetAddress);
+            initiatorMode(bootstrap, hostId, opponentId, targetAddress);
         }
 
         try {
@@ -59,72 +70,119 @@ public class ConnectionUtility {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-
     }
 
-    private static ClientBootstrap<PureProtocol> createClientBootstrap(UdpSockets udpSockets) {
-        ClientBootstrap<PureProtocol> clientBootstrap = new ClientBootstrap<>(udpSockets);
+    private static ExchangeSession<PureProtocol> createExchangeSession(String hostId, UdpSockets udpSockets) {
+        ExchangeSessionBuilder<PureProtocol> exchangeSession = new ExchangeSessionBuilder<>(udpSockets);
 
-        Optional.ofNullable(System.getenv("SIGNALING_SERVER"))
-                .map(URI::create)
-                .ifPresent(clientBootstrap::useSignaling);
-        Optional.ofNullable(System.getenv("STUN_SERVER"))
+        Optional.ofNullable(System.getenv(STUN_SERVER))
                 .map(value -> new InetSocketAddress(value, 3478))
-                .ifPresent(clientBootstrap::useStun);
-        Optional.ofNullable(System.getenv("TURN_SERVER"))
+                .ifPresent(exchangeSession::useStun);
+        Optional.ofNullable(System.getenv(TURN_SERVER))
                 .map(value -> new InetSocketAddress(value, 3478))
-                .ifPresent(clientBootstrap::useTurn);
-        Optional.ofNullable(System.getenv("SOCKET_TIMEOUT"))
+                .ifPresent(exchangeSession::useTurn);
+        Optional.ofNullable(System.getenv(SOCKET_TIMEOUT))
                 .map(Long::valueOf)
                 .map(Duration::ofMillis)
-                .ifPresent(clientBootstrap::useSocketTimeout);
-        Optional.ofNullable(System.getenv("HOST_ID")).ifPresent(clientBootstrap::withHostId);
+                .ifPresent(exchangeSession::useSocketTimeout);
+        Optional.ofNullable(hostId).ifPresent(exchangeSession::withHostId);
 
-        return clientBootstrap;
+        return exchangeSession.build();
     }
 
     @SneakyThrows
-    private static void receiverMode(ClientBootstrap<PureProtocol> clientBootstrap) {
-        URI signalingURI = Optional.ofNullable(System.getenv("SIGNALING_SERVER"))
-                .map(URI::create)
-                .orElseThrow(() -> new IllegalArgumentException("SIGNALING_SERVER is not set"));
-        SignalingEventHandler eventHandler = getSignalingEventHandler(clientBootstrap);
-        SignalingProperties signalingProperties = new SignalingProperties(signalingURI, Duration.ofSeconds(5L));
-        SignalingClient signalingClient = new DefaultSignalingClient(
-                signalingProperties,
-                new SignalingSubscriber(System.getenv("HOST_ID"), List.of()),
-                eventHandler
-        );
+    private static void receiverMode(String hostId, UdpSockets udpSockets, ExchangeSession<PureProtocol> exchangeSession) {
+        if (null == hostId) {
+            ClientProperties clientProperties = new ClientProperties(
+                    null, null, null, null, 500L
+            );
+            ProtocolInitializer protocolInitializer = new ProtocolInitializer(1024, 65535);
+            PureProtocol pureProtocol = protocolInitializer.init(
+                    clientProperties,
+                    properties -> new PureProtocol(udpSockets, NatBehaviour.NO_NAT, properties, true)
+            );
+        } else {
+            getTransferOperator(hostId, exchangeSession);
+        }
 
         Thread.currentThread().join();
     }
 
-    private static void initiatorMode(ClientBootstrap<PureProtocol> clientBootstrap, String opponentId, InetSocketAddress targetAddress) {
-        clientBootstrap.build();
-        ClientSession<PureProtocol> clientSession = new ClientSession<>(clientBootstrap);
-        Optional.ofNullable(opponentId).ifPresent(clientSession::connectTo);
-        Optional.ofNullable(targetAddress).ifPresent(clientSession::connectTo);
-        clientSession.as(IceRole.CONTROLLING);
-        clientSession.mapEstablishedConnection(it -> new PureProtocol(it, false));
-
-        clientSession.connect().thenAccept(it -> {
-            PureProtocol protocol = it.getProtocol();
-            Instant start = Instant.now();
-            for (int i = 0; i < 60; i++) {
-                protocol.getClient().sendAndReceive(it.getOpponentAddress(), "Ping " + i).join();
-            }
-            Instant end = Instant.now();
-            Duration duration = Duration.between(start, end);
-            log.info("Sent 60 frames in {} ms", duration.toMillis());
-            try {
-                protocol.close();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }).join();
+    private static InetSocketAddress getTargetAddress() {
+        return Optional.ofNullable(System.getenv(TARGET_ADDRESS))
+                .flatMap(
+                        it -> Optional.ofNullable(System.getenv(TARGET_PORT))
+                                .map(Integer::parseInt)
+                                .map(ij -> new InetSocketAddress(it, ij))
+                )
+                .orElse(null);
     }
 
-    private static SignalingEventHandler getSignalingEventHandler(ClientBootstrap<PureProtocol> clientBootstrap) {
+    private static void initiatorMode(ExchangeSession<PureProtocol> exchangeSession, String hostId, String opponentId, InetSocketAddress targetAddress) {
+        CandidateTransferOperator candidateTransferOperator = null != opponentId ? getTransferOperator(hostId, exchangeSession) : null;
+
+        PeerConnectionBuilder<PureProtocol> peerConnectionBuilder = exchangeSession.register(opponentId)
+                .as(IceRole.CONTROLLING)
+                .mapEstablishedConnection(it -> new PureProtocol(it, false))
+                .useCandidateTransferOperator(candidateTransferOperator);
+
+        Optional.ofNullable(targetAddress).ifPresent(peerConnectionBuilder::connectTo);
+        Optional.ofNullable(opponentId).ifPresent(peerConnectionBuilder::connectTo);
+
+        PeerConnection<PureProtocol> peerConnection = peerConnectionBuilder.build();
+
+        peerConnection.connect().thenAccept(it -> test(exchangeSession, it, candidateTransferOperator)).join();
+    }
+
+    private static CandidateTransferOperator getTransferOperator(String hostId, ExchangeSession<PureProtocol> exchangeSession) {
+        URI signalingURI = Optional.ofNullable(System.getenv(SIGNALING_SERVER))
+                .map(URI::create)
+                .orElseThrow(() -> new IllegalArgumentException(SIGNALING_SERVER + " is not set"));
+        SignalingProperties signalingProperties = new SignalingProperties(signalingURI, Duration.ofSeconds(5));
+        SignalingSubscriber signalingSubscriber = new SignalingSubscriber(hostId, List.of());
+        SignalingEventHandler eventHandler = getSignalingEventHandler(exchangeSession);
+        SignalingClient signalingClient = new DefaultSignalingClient(signalingProperties, signalingSubscriber, eventHandler);
+
+        return new DefaultCandidateTransferOperator<>(signalingClient, exchangeSession);
+    }
+
+    private static void test(ExchangeSession<PureProtocol> exchangeSession, ConnectResult<PureProtocol> connectResult, CandidateTransferOperator candidateTransferOperator) {
+        int packetsQuantity = Optional.ofNullable(System.getenv(PACKETS_QUANTITY))
+                .map(it -> Math.abs(Integer.parseInt(it)))
+                .orElse(60);
+        long packetsSendInterval = Optional.ofNullable(System.getenv(PACKETS_SEND_INTERVAL))
+                .map(it -> Math.abs(Long.parseLong(it)))
+                .orElse(0L);;
+
+        PureProtocol protocol = connectResult.getProtocol();
+
+        Instant start = Instant.now();
+        for (int i = 0; i < packetsQuantity; i++) {
+            protocol.getClient().sendAndReceive(connectResult.getOpponentAddress(), "Ping " + i).join();
+            try {
+                if (0 == packetsSendInterval) {
+                    continue;
+                }
+                Thread.sleep(packetsSendInterval);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        Instant end = Instant.now();
+        Duration duration = Duration.between(start, end);
+        log.info("Sent {} packets in {} ms", packetsQuantity, duration.toMillis());
+
+        try {
+            if (null != candidateTransferOperator) {
+                candidateTransferOperator.close();
+            }
+            exchangeSession.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static SignalingEventHandler getSignalingEventHandler(ExchangeSession<PureProtocol> exchangeSession) {
 
         return new SignalingEventHandler() {
 
@@ -134,23 +192,18 @@ public class ConnectionUtility {
                         .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
                         .collect(Collectors.toCollection(TreeSet::new));
 
-                ClientSession<PureProtocol> clientSession = new ClientSession<>(clientBootstrap)
+                PeerConnection<PureProtocol> peerConnectionBuilder = exchangeSession.register(event.getUserId())
                         .as(IceRole.CONTROLLED)
                         .connectTo(event.getUserId())
                         .mapEstablishedConnection(it -> {
                             log.info("Established connection: {}", it);
                             return new PureProtocol(it, true);
-                        });
+                        })
+                        .build();
 
-                clientSession.connect(opponentCandidates).thenAcceptAsync(it -> {
-                    try {
-                        System.in.read();
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
+                peerConnectionBuilder.connect(opponentCandidates);
 
-                return clientSession.getAddressCandidates();
+                return peerConnectionBuilder.getAddressCandidates();
             }
 
             @Override
@@ -158,7 +211,7 @@ public class ConnectionUtility {
 
             }
         };
-        
+
     }
 
 }

@@ -169,21 +169,24 @@ public class DefaultSignalingClient implements SignalingClient {
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
             StompMessage<SignalingEvent> stompMessage = stompCodec.decode(data, SignalingEvent.class);
             SignalingEvent payload = stompMessage.getPayload();
-            if (payload instanceof SessionEvent sessionEvent) {
-                if (sessionEvent instanceof InviteEvent inviteEvent) {
+
+            if (!(payload instanceof SessionEvent sessionEvent)) {
+                return WebSocket.Listener.super.onText(webSocket, data, last);
+            }
+            switch (sessionEvent) {
+                case InviteEvent inviteEvent -> {
                     List<AddressCandidate> addresses = signalingEventHandler.handleInvite(inviteEvent);
                     SessionEvent answer = Optional.ofNullable(addresses).map(it -> !it.isEmpty()).orElse(false)
                             ? new InviteAnsweredEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), addresses)
                             : new CancelEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), "Rejected");
                     send(answer);
-                } else if (sessionEvent instanceof ClosingEvent closingEvent) {
+                }
+                case ClosingEvent closingEvent -> {
                     signalingEventHandler.handleClose(closingEvent);
                     send(new ClosedEvent(sessionEvent.getSessionId(), signalingSubscriber.getId()));
-                } else if (sessionEvent instanceof CancelEvent cancelEvent) {
-                    pendingMessages.fail(cancelEvent.getUserId(), cancelEvent.getReason());
-                } else {
-                    pendingMessages.complete(sessionEvent.getUserId(), sessionEvent);
                 }
+                case CancelEvent cancelEvent -> pendingMessages.fail(cancelEvent.getUserId(), cancelEvent.getReason());
+                default -> pendingMessages.complete(sessionEvent.getUserId(), sessionEvent);
             }
             return WebSocket.Listener.super.onText(webSocket, data, last);
         }

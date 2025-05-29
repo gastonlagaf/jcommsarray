@@ -6,55 +6,55 @@ import com.gastonlagaf.udp.client.ice.impl.DefaultIceConnector;
 import com.gastonlagaf.udp.client.ice.model.Candidate;
 import com.gastonlagaf.udp.client.ice.model.IceProperties;
 import com.gastonlagaf.udp.client.ice.model.IceRole;
+import com.gastonlagaf.udp.client.ice.transfer.CandidateTransferOperator;
 import com.gastonlagaf.udp.client.model.ClientProperties;
 import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.protocol.TurnAwareClientProtocol;
-import com.gastonlagaf.udp.client.protocol.ProtocolInitializer;
 import com.gastonlagaf.udp.client.protocol.PureProtocol;
 import com.gastonlagaf.udp.protocol.ClientProtocol;
+import com.gastonlagaf.udp.turn.model.NatBehaviour;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-@RequiredArgsConstructor
-public class ClientSession<T extends ClientProtocol<?>> {
+public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
 
-    private final ClientBootstrap<T> clientBootstrap;
+    private final ExchangeSession<T> exchangeSession;
 
-    private String opponentId;
+    private final String opponentId;
 
-    private IceRole iceRole;
+    private final IceRole iceRole;
+
+    private final CandidateTransferOperator candidateTransferOperator;
+
+    private final Function<TurnAwareClientProtocol<?>, T> connectionMapper;
+
+    private final Consumer<PeerConnection<T>> onEstablishedConnection;
 
     private InetSocketAddress targetAddress;
 
     private IceConnector iceConnector;
 
-    private Function<TurnAwareClientProtocol<?>, T> connectionMapper;
+    private ConnectResult<T> connectResult;
 
-    public ClientSession<T> as(IceRole iceRole) {
-        this.iceRole = iceRole;
-        return this;
-    }
-
-    public ClientSession<T> connectTo(String opponentId) {
+    PeerConnection(ExchangeSession<T> exchangeSession, String opponentId, IceRole iceRole, CandidateTransferOperator candidateTransferOperator, Function<TurnAwareClientProtocol<?>, T> connectionMapper, Consumer<PeerConnection<T>> onEstablishedConnection, InetSocketAddress targetAddress) {
+        this.exchangeSession = exchangeSession;
         this.opponentId = opponentId;
-        return this;
-    }
-
-    public ClientSession<T> connectTo(InetSocketAddress targetAddress) {
-        this.targetAddress = targetAddress;
-        return this;
-    }
-
-    public ClientSession<T> mapEstablishedConnection(Function<TurnAwareClientProtocol<?>, T> connectionMapper) {
+        this.iceRole = iceRole;
+        this.candidateTransferOperator = candidateTransferOperator;
         this.connectionMapper = connectionMapper;
-        return this;
+        this.onEstablishedConnection = onEstablishedConnection;
+        this.targetAddress = targetAddress;
     }
 
     public List<AddressCandidate> getAddressCandidates() {
@@ -78,10 +78,7 @@ public class ClientSession<T extends ClientProtocol<?>> {
             return this.iceConnector;
         });
         return iceConnector.connect(opponentId, candidates)
-                .thenApplyAsync(it -> {
-                    T protocol = connectionMapper.apply(it.getProtocol());
-                    return new ConnectResult<>(it.getOpponentAddress(), protocol);
-                });
+                .thenApplyAsync(this::mapConnectResult);
     }
 
     public CompletableFuture<ConnectResult<T>> connect() {
@@ -89,32 +86,47 @@ public class ClientSession<T extends ClientProtocol<?>> {
         if (null != opponentId) {
             IceConnector iceConnector = Optional.ofNullable(this.iceConnector).orElseGet(this::initiateIceConnector);
             return iceConnector.connect(opponentId)
-                    .thenApplyAsync(it -> {
-                        T protocol = connectionMapper.apply(it.getProtocol());
-                        return new ConnectResult<>(it.getOpponentAddress(), protocol);
-                    });
+                    .thenApplyAsync(this::mapConnectResult);
         }
 
         TurnAwareClientProtocol<?> turnAwareClientProtocol = getBaseClientProtocol();
         return CompletableFuture.completedFuture(turnAwareClientProtocol)
-                .thenApply(it -> {
-                    T protocol = connectionMapper.apply(it);
-                    return new ConnectResult<>(targetAddress, protocol);
-                });
+                .thenApply(it -> this.mapConnectResult(new ConnectResult<>(targetAddress, it)));
+    }
+
+    public T getProtocol() {
+        assertConnectionEstablished();
+        return connectResult.getProtocol();
+    }
+
+    public InetSocketAddress getTargetAddress() {
+        assertConnectionEstablished();
+        return connectResult.getOpponentAddress();
+    }
+
+    @Override
+    public void close() throws IOException {
+        connectResult.getProtocol().close();
+    }
+
+    private void assertConnectionEstablished() {
+        if (null == connectResult) {
+            throw new IllegalStateException("Connection has not been established yet");
+        }
     }
 
     private TurnAwareClientProtocol<?> getBaseClientProtocol() {
-        ProtocolInitializer protocolInitializer = new ProtocolInitializer(40000, 60000);
+        ProtocolInitializer protocolInitializer = new ProtocolInitializer(exchangeSession.minPort, exchangeSession.maxPort);
         ClientProperties clientProperties = new ClientProperties(
                 null,
                 targetAddress,
-                clientBootstrap.stunAddress,
-                clientBootstrap.turnAddress,
-                clientBootstrap.socketTimeout.toMillis()
+                exchangeSession.stunAddress,
+                exchangeSession.turnAddress,
+                exchangeSession.socketTimeout.toMillis()
         );
         return protocolInitializer.init(
                 clientProperties,
-                it -> new PureProtocol(clientBootstrap.sockets, null, it, false)
+                it -> new PureProtocol(exchangeSession.sockets, NatBehaviour.NO_NAT, it, false)
         );
     }
 
@@ -134,11 +146,8 @@ public class ClientSession<T extends ClientProtocol<?>> {
         if (null == opponentId) {
             return;
         }
-        if (null == clientBootstrap.hostId) {
+        if (null == exchangeSession.hostId) {
             throw new IllegalArgumentException("Host ID is not specified");
-        }
-        if (null == clientBootstrap.signalingUri && null == clientBootstrap.candidateTransferOperator) {
-            throw new IllegalArgumentException("Unable to send contact information, as signaling server is not specified");
         }
         if (null == iceRole) {
             throw new IllegalArgumentException("Unable to send contact information, as iceRole is not specified");
@@ -147,19 +156,30 @@ public class ClientSession<T extends ClientProtocol<?>> {
 
     private IceConnector initiateIceConnector() {
         IceProperties iceProperties = new IceProperties(
-                clientBootstrap.hostId, opponentId, iceRole, 1, 3, 40000, 60000
+                exchangeSession.hostId, opponentId, iceRole, 1, 3, exchangeSession.minPort, exchangeSession.maxPort
         );
         ClientProperties clientProperties = new ClientProperties(
-                null, null, clientBootstrap.stunAddress, clientBootstrap.turnAddress,
-                Optional.ofNullable(clientBootstrap.socketTimeout).orElseGet(() -> Duration.ofSeconds(5L)).toMillis()
+                null, null, exchangeSession.stunAddress, exchangeSession.turnAddress,
+                Optional.ofNullable(exchangeSession.socketTimeout).orElseGet(() -> Duration.ofSeconds(5L)).toMillis()
         );
 
         return new DefaultIceConnector(
-                clientBootstrap.sockets,
+                exchangeSession.sockets,
                 iceProperties,
                 clientProperties,
-                clientBootstrap.candidateTransferOperator
+                candidateTransferOperator
         );
+    }
+
+    private ConnectResult<T> mapConnectResult(ConnectResult<? extends TurnAwareClientProtocol<?>> rawResult) {
+        T protocol = connectionMapper.apply(rawResult.getProtocol());
+        ConnectResult<T> result = new ConnectResult<>(rawResult.getOpponentAddress(), protocol);
+        this.targetAddress = rawResult.getOpponentAddress();
+        this.connectResult = result;
+
+        Optional.ofNullable(onEstablishedConnection).ifPresent(it -> it.accept(this));
+
+        return result;
     }
 
 }

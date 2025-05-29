@@ -77,9 +77,9 @@ public abstract class TurnAwareClientProtocol<T> implements ClientProtocol<T> {
     }
 
     public TurnAwareClientProtocol(NatBehaviour natBehaviour, ClientProperties clientProperties, UdpSockets sockets) {
+        this.sockets = sockets;
         this.clientProperties = Optional.ofNullable(clientProperties).orElseGet(this::getClientProperties);
         this.natBehaviour = Optional.ofNullable(natBehaviour).orElseGet(() -> getNatBehaviour(this.clientProperties));
-        this.sockets = sockets;
 
         UdpClient<T> udpClient;
         if (!TURN_REQUIRED_NAT_BEHAVIOURS.contains(this.natBehaviour)) {

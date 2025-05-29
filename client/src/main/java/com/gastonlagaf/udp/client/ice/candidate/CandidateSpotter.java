@@ -8,6 +8,7 @@ import com.gastonlagaf.udp.client.model.ConnectResult;
 import com.gastonlagaf.udp.client.stun.StunClientProtocol;
 import com.gastonlagaf.udp.client.stun.client.StunClient;
 import com.gastonlagaf.udp.client.turn.proxy.TurnProxy;
+import com.gastonlagaf.udp.discovery.InternetDiscovery;
 import com.gastonlagaf.udp.exception.SocketRegistrationException;
 import com.gastonlagaf.udp.socket.UdpSockets;
 import com.gastonlagaf.udp.turn.model.NatBehaviour;
@@ -69,19 +70,7 @@ public class CandidateSpotter {
     }
 
     private List<Candidate> searchHostCandidates() {
-        List<InetAddress> bases = new ArrayList<>();
-        try {
-            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-            while (networkInterfaces.hasMoreElements()) {
-                NetworkInterface networkInterface = networkInterfaces.nextElement();
-                List<InetAddress> addresses = introspectNetworkInterface(networkInterface);
-                bases.addAll(addresses);
-            }
-        } catch (SocketException e) {
-            throw new UncheckedIOException(e);
-        }
-
-        return bases.stream()
+        return InternetDiscovery.getAddresses().stream()
                 .map(it -> bind(it, CandidateType.HOST, localPreferenceCounter.getAndDecrement()))
                 .toList();
     }

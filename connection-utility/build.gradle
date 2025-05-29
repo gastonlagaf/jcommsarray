@@ -1,6 +1,22 @@
-apply plugin: 'application'
+plugins {
+    id 'application'
+    id 'org.graalvm.buildtools.native' version '0.10.6'
+}
 
 group = rootProject.group + ".udp"
+
+graalvmNative {
+    binaries {
+        main {
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+            imageName = 'connection-utility'
+            mainClass = 'com.gastonlagaf.udp.ConnectionUtility'
+            sharedLibrary = false
+        }
+    }
+}
 
 application {
     mainClass = "com.gastonlagaf.udp.ConnectionUtility"
