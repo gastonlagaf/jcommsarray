@@ -1,4 +1,4 @@
-group = rootProject.group + ".udp"
+group = rootProject.group
 
 dependencies {
 

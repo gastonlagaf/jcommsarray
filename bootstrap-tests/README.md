@@ -4,8 +4,8 @@ It is a sample applications, used for testing in development.
 
 ## Test scenarios
 
-**NOTE**: For TURN, ICE and SIP connectivity test, refer to turn-server and 
-signaling-server-test modules descriptions, how to bootstrap them, as they are 
+**NOTE**: For TURN, ICE and SIP connectivity test, refer to turn-server and
+signaling-server-test modules descriptions, how to bootstrap them, as they are
 required for testing.
 
 ### Direct Communication
@@ -29,7 +29,7 @@ As a result, **_TurnChannelClient_** should send 100 Pings and receive same amou
 - Launch Signaling Server from signaling-server-test module.
 - Launch **_IceReceiver_** as a connection receiver.
 - Launch **_IceInitiator_** as a connection initiator.
-  
+
 As a result, **_IceInitiator_** should send 60 Pings and receive same amount of responses.
 
 ### SIP Connectivity

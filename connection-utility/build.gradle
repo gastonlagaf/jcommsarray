@@ -3,7 +3,7 @@ plugins {
     id 'org.graalvm.buildtools.native' version '0.10.6'
 }
 
-group = rootProject.group + ".udp"
+group = rootProject.group + ".test"
 
 graalvmNative {
     binaries {
@@ -11,15 +11,15 @@ graalvmNative {
             javaLauncher = javaToolchains.launcherFor {
                 languageVersion = JavaLanguageVersion.of(21)
             }
-            imageName = 'connection-utility'
-            mainClass = 'com.gastonlagaf.udp.ConnectionUtility'
+            imageName = "connection-utility"
+            mainClass = "com.jcommsarray.test.ConnectionUtility"
             sharedLibrary = false
         }
     }
 }
 
 application {
-    mainClass = "com.gastonlagaf.udp.ConnectionUtility"
+    mainClass = "com.jcommsarray.test.ConnectionUtility"
 }
 
 dependencies {

@@ -1,6 +1,16 @@
 apply plugin: "maven-publish"
 
 publishing {
+    repositories {
+        maven {
+            name = "Github"
+            url = uri("https://maven.pkg.github.com/gastonlagaf/jcommsarray")
+            credentials {
+                username = System.getenv("GPR_USER")
+                password = System.getenv("GPR_PASSWORD")
+            }
+        }
+    }
     publications {
         create("maven", MavenPublication.class) {
             version = rootProject.version

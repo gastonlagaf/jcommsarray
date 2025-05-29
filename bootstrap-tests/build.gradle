@@ -1,4 +1,4 @@
-group = rootProject.group + ".udp.test"
+group = rootProject.group + ".test"
 
 dependencies {
     implementation project(":client")

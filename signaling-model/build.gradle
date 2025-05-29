@@ -1,4 +1,4 @@
-group = rootProject.group
+group = rootProject.group + ".signalling"
 
 dependencies {
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"

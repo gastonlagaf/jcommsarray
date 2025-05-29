@@ -1,6 +1,6 @@
 # Signaling Server
 
-Server, used for exchanging contact information between peers. It handles websocket 
+Server, used for exchanging contact information between peers. It handles websocket
 connections, forwarding such events as:
 
 - Peer registration
@@ -10,25 +10,25 @@ connections, forwarding such events as:
 
 ## Exchange Mechanism
 
-Before connecting two peers, those two should initially establish websocket connection 
-with server itself, so in case one peer invites other one, server knows which socket 
+Before connecting two peers, those two should initially establish websocket connection
+with server itself, so in case one peer invites other one, server knows which socket
 should be used for forwarding.
 
 Peer, who want to initiate connection, firstly need to create communication session.
 It is not limited between only two peers, peers quantity per one session is unlimited.
-After session is created, peer is able to invite to this session target peer, via 
-sending an invitation event to opponent. Opponent itself reviews invite, and if it is 
-ok for him to connect, he answers positively, providing his own contact details. 
+After session is created, peer is able to invite to this session target peer, via
+sending an invitation event to opponent. Opponent itself reviews invite, and if it is
+ok for him to connect, he answers positively, providing his own contact details.
 After that both of them are eligible for performing ICE procedure.
 
-Additionally, session may be terminated, and such event will be broadcasted to all 
+Additionally, session may be terminated, and such event will be broadcasted to all
 participants, so they can do their own finalization procedures.
 
 ![Workflow](assets/workflow.png)
 
 ## Usage
 
-Currently, server may be integrated only as a Spring Boot autoconfiguration. 
+Currently, server may be integrated only as a Spring Boot autoconfiguration.
 
 ### Maven Dependency
 

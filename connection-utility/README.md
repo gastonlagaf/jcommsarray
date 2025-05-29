@@ -1,13 +1,13 @@
 # Connection Utility
 
-Test utility for checking connectivity, mostly during development. Comparing to 
-[bootstrap-tests](../bootstrap-tests/README.md) module, instead of having multiple 
-test classes, divided by scenarios and roles, there is only one class, where mode 
-and role is defined by configuration properties from environment variables. Below 
+Test utility for checking connectivity, mostly during development. Comparing to
+[bootstrap-tests](../bootstrap-tests/README.md) module, instead of having multiple
+test classes, divided by scenarios and roles, there is only one class, where mode
+and role is defined by configuration properties from environment variables. Below
 listed set of arguments for each specific mode and role.
 
-**NOTE**: For TURN, ICE and SIP connectivity test, refer to 
-[turn-server](../turn-server/README.md) and signaling-server-test modules 
+**NOTE**: For TURN, ICE and SIP connectivity test, refer to
+[turn-server](../turn-server/README.md) and signaling-server-test modules
 descriptions, how to bootstrap them, as they are required for testing.
 
 ## Modes
