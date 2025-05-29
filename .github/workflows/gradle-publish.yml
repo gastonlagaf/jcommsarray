@@ -8,8 +8,8 @@
 name: Build And Publish
 
 on:
-  push:
-    branches: master
+  release:
+    types: [created]
 
 jobs:
   build:
