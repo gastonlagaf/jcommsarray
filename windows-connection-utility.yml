@@ -1,0 +1,30 @@
+name: Windows Connection Utility
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ github.workspace }} # location for the settings.xml file
+      - name: 'Build Executable'
+        run: ./gradlew clean nativeCompile
+      - name: Archive Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: connection-utility
+          path: ${{ github.workspace }}/connection-utility/build/native/nativeCompile/connection-utility
+          retention-days: 3
