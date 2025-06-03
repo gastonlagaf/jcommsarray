@@ -6,7 +6,7 @@ import com.jcommsarray.client.ice.model.Candidate;
 import com.jcommsarray.client.ice.model.CandidateType;
 import com.jcommsarray.client.ice.model.IceRole;
 import com.jcommsarray.client.protocol.PureProtocol;
-import com.jcommsarray.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.ClosingEvent;
 import com.jcommsarray.signaling.model.InviteEvent;

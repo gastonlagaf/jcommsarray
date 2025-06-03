@@ -1,6 +1,6 @@
-package com.jcommsarray.signaling.impl;
+package com.jcommsarray.client.signaling.impl;
 
-import com.jcommsarray.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.ClosingEvent;
 import com.jcommsarray.signaling.model.InviteEvent;

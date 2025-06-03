@@ -13,8 +13,26 @@ graalvmNative {
             }
             imageName = "connection-utility"
             mainClass = "com.jcommsarray.test.ConnectionUtility"
+
             sharedLibrary = false
+            useFatJar = true
         }
+    }
+    agent {
+        enabled = project.hasProperty("graalvmAgent")
+        defaultMode = "direct"
+
+        modes {
+            direct {
+                options.add("config-output-dir=src/main/resources/META-INF/native-image")
+            }
+        }
+
+        builtinCallerFilter = true
+        builtinHeuristicFilter = true
+        enableExperimentalPredefinedClasses = false
+        enableExperimentalUnsafeAllocationTracing = false
+        trackReflectionMetadata = true
     }
 }
 

@@ -1,17 +1,17 @@
-package com.jcommsarray.signaling.impl;
+package com.jcommsarray.client.signaling.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jcommsarray.client.PendingMessages;
 import com.jcommsarray.client.model.SignalingProperties;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
 import com.jcommsarray.signaling.model.*;
-import com.jcommsarray.signaling.stomp.JsonStompPayloadCodec;
-import com.jcommsarray.signaling.stomp.StompCodec;
-import com.jcommsarray.signaling.stomp.model.StompHeaders;
-import com.jcommsarray.signaling.stomp.model.StompMessage;
-import com.jcommsarray.signaling.stomp.model.StompMessageType;
+import com.jcommsarray.client.signaling.stomp.JsonStompPayloadCodec;
+import com.jcommsarray.client.signaling.stomp.StompCodec;
+import com.jcommsarray.client.signaling.stomp.model.StompHeaders;
+import com.jcommsarray.client.signaling.stomp.model.StompMessage;
+import com.jcommsarray.client.signaling.stomp.model.StompMessageType;
 import lombok.SneakyThrows;
 
 import java.net.http.HttpClient;

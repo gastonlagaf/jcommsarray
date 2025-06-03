@@ -1,4 +1,4 @@
-package com.jcommsarray.signaling;
+package com.jcommsarray.client.signaling;
 
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.Session;

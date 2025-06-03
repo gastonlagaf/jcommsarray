@@ -10,9 +10,9 @@ import com.jcommsarray.client.model.ClientProperties;
 import com.jcommsarray.client.model.ConnectResult;
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.protocol.PureProtocol;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
-import com.jcommsarray.signaling.impl.DefaultSignalingClient;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.impl.DefaultSignalingClient;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.ClosingEvent;
 import com.jcommsarray.signaling.model.InviteEvent;
@@ -104,7 +104,7 @@ public class ConnectionUtility {
             getTransferOperator(hostId, exchangeSession);
         }
 
-        Thread.currentThread().join();
+        Thread.currentThread().sleep(50000);
     }
 
     private static InetSocketAddress getTargetAddress() {
@@ -137,7 +137,7 @@ public class ConnectionUtility {
         URI signalingURI = Optional.ofNullable(System.getenv(SIGNALING_SERVER))
                 .map(URI::create)
                 .orElseThrow(() -> new IllegalArgumentException(SIGNALING_SERVER + " is not set"));
-        SignalingProperties signalingProperties = new SignalingProperties(signalingURI, Duration.ofSeconds(5));
+        SignalingProperties signalingProperties = new SignalingProperties(signalingURI, Duration.ofSeconds(20));
         SignalingSubscriber signalingSubscriber = new SignalingSubscriber(hostId, List.of());
         SignalingEventHandler eventHandler = getSignalingEventHandler(exchangeSession);
         SignalingClient signalingClient = new DefaultSignalingClient(signalingProperties, signalingSubscriber, eventHandler);
