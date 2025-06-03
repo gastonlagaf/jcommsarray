@@ -16,7 +16,25 @@ graalvmNative {
             sharedLibrary = false
         }
     }
+
+    agent {
+        enabled = project.hasProperty('graalAgent')
+        defaultMode = "direct"
+        trackReflectionMetadata = true
+
+        modes {
+            direct {
+                options.add("config-output-dir=src/main/resources/META-INF/native-image")
+            }
+        }
+        metadataCopy {
+            outputDirectories.add("src/main/resources/META-INF/native-image/")
+            mergeWithExisting = true
+        }
+    }
 }
+
+
 
 application {
     mainClass = "com.jcommsarray.test.ConnectionUtility"

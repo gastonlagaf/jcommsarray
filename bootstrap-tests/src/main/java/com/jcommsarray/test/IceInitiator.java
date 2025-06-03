@@ -10,9 +10,9 @@ import com.jcommsarray.client.model.ConnectResult;
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.protocol.PureProtocol;
 import com.jcommsarray.test.signaling.SampleSignalingEventHandler;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
-import com.jcommsarray.signaling.impl.DefaultSignalingClient;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.impl.DefaultSignalingClient;
 import com.jcommsarray.signaling.model.SignalingSubscriber;
 import com.jcommsarray.test.socket.UdpSockets;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class IceInitiator {
         sockets.start();
 
         ExchangeSession<PureProtocol> exchangeSession = new ExchangeSessionBuilder<PureProtocol>(sockets)
-                .withHostId("boba")
+                .withHostId("pupa")
                 .useStun(new InetSocketAddress("45.129.186.80", 3478))
                 .useTurn(new InetSocketAddress("45.129.186.80", 3478))
                 .useSocketTimeout(Duration.ofMillis(500L))
@@ -41,9 +41,9 @@ public class IceInitiator {
 
         CandidateTransferOperator candidateTransferOperator = getCandidateTransferOperator(exchangeSession);
 
-        PeerConnection<PureProtocol> peerConnection = exchangeSession.register("pupa")
+        PeerConnection<PureProtocol> peerConnection = exchangeSession.register("boba")
                 .as(IceRole.CONTROLLING)
-                .connectTo("pupa")
+                .connectTo("boba")
                 .useCandidateTransferOperator(candidateTransferOperator)
                 .mapEstablishedConnection(it -> new PureProtocol(it, false))
                 .build();
@@ -62,7 +62,7 @@ public class IceInitiator {
         );
         SignalingEventHandler eventHandler = new SampleSignalingEventHandler(exchangeSession);
         SignalingClient signalingClient = new DefaultSignalingClient(
-                signalingProperties, new SignalingSubscriber("boba", List.of()), eventHandler
+                signalingProperties, new SignalingSubscriber("pupa", List.of()), eventHandler
         );
         return new DefaultCandidateTransferOperator<>(signalingClient, exchangeSession);
     }

@@ -3,11 +3,13 @@ package com.jcommsarray.signaling.stomp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.jcommsarray.client.signaling.stomp.StompCodec;
+import com.jcommsarray.client.signaling.stomp.StompPayloadCodec;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.InviteEvent;
 import com.jcommsarray.signaling.model.SignalingEvent;
-import com.jcommsarray.signaling.stomp.model.StompMessage;
-import com.jcommsarray.signaling.stomp.model.StompMessageType;
+import com.jcommsarray.client.signaling.stomp.model.StompMessage;
+import com.jcommsarray.client.signaling.stomp.model.StompMessageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

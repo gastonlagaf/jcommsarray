@@ -1,17 +1,19 @@
-package com.jcommsarray.signaling.impl;
+package com.jcommsarray.client.signaling.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jcommsarray.client.PendingMessages;
 import com.jcommsarray.client.model.SignalingProperties;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.SignalingAuthorizationProvider;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.model.SignalingAuthorizationHeader;
 import com.jcommsarray.signaling.model.*;
-import com.jcommsarray.signaling.stomp.JsonStompPayloadCodec;
-import com.jcommsarray.signaling.stomp.StompCodec;
-import com.jcommsarray.signaling.stomp.model.StompHeaders;
-import com.jcommsarray.signaling.stomp.model.StompMessage;
-import com.jcommsarray.signaling.stomp.model.StompMessageType;
+import com.jcommsarray.client.signaling.stomp.JsonStompPayloadCodec;
+import com.jcommsarray.client.signaling.stomp.StompCodec;
+import com.jcommsarray.client.signaling.stomp.model.StompHeaders;
+import com.jcommsarray.client.signaling.stomp.model.StompMessage;
+import com.jcommsarray.client.signaling.stomp.model.StompMessageType;
 import lombok.SneakyThrows;
 
 import java.net.http.HttpClient;
@@ -54,6 +56,10 @@ public class DefaultSignalingClient implements SignalingClient {
     private final SignalingEventHandler signalingEventHandler;
 
     public DefaultSignalingClient(SignalingProperties properties, SignalingSubscriber signalingSubscriber, SignalingEventHandler signalingEventHandler) {
+        this(properties, signalingSubscriber, signalingEventHandler, null);
+    }
+
+    public DefaultSignalingClient(SignalingProperties properties, SignalingSubscriber signalingSubscriber, SignalingEventHandler signalingEventHandler, SignalingAuthorizationProvider signalingAuthorizationProvider) {
         this.properties = properties;
         this.signalingSubscriber = signalingSubscriber;
         this.signalingEventHandler = signalingEventHandler;
@@ -66,8 +72,15 @@ public class DefaultSignalingClient implements SignalingClient {
         WebSocketListener listener = new WebSocketListener();
 
         this.httpClient = HttpClient.newHttpClient();
-        this.webSocket = httpClient.newWebSocketBuilder()
-                .header("name", signalingSubscriber.getId())
+
+        WebSocket.Builder webSocketBuilder = httpClient.newWebSocketBuilder();
+        if (null != signalingAuthorizationProvider) {
+            SignalingAuthorizationHeader authHeader = signalingAuthorizationProvider.getAuthorization();
+            webSocketBuilder.header(authHeader.getName(), authHeader.getValue());
+        } else {
+            webSocketBuilder.header("name", signalingSubscriber.getId());
+        }
+        this.webSocket = webSocketBuilder
                 .buildAsync(properties.getUri(), listener)
                 .join();
 

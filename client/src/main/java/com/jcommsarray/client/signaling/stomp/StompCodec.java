@@ -1,7 +1,7 @@
-package com.jcommsarray.signaling.stomp;
+package com.jcommsarray.client.signaling.stomp;
 
-import com.jcommsarray.signaling.stomp.model.StompMessage;
-import com.jcommsarray.signaling.stomp.model.StompMessageType;
+import com.jcommsarray.client.signaling.stomp.model.StompMessage;
+import com.jcommsarray.client.signaling.stomp.model.StompMessageType;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;

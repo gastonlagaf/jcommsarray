@@ -4,7 +4,7 @@ import com.jcommsarray.client.bootstrap.ExchangeSession;
 import com.jcommsarray.client.ice.model.Candidate;
 import com.jcommsarray.client.ice.model.CandidateType;
 import com.jcommsarray.client.ice.transfer.CandidateTransferOperator;
-import com.jcommsarray.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingClient;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.SignalingSubscriber;
 import com.jcommsarray.test.protocol.ClientProtocol;

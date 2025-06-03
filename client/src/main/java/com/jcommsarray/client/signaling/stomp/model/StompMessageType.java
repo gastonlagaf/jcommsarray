@@ -1,4 +1,4 @@
-package com.jcommsarray.signaling.stomp.model;
+package com.jcommsarray.client.signaling.stomp.model;
 
 public enum StompMessageType {
     CONNECT,

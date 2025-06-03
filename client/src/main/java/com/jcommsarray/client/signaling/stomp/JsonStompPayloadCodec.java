@@ -1,4 +1,4 @@
-package com.jcommsarray.signaling.stomp;
+package com.jcommsarray.client.signaling.stomp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

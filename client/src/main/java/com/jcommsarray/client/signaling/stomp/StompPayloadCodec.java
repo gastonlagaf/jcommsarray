@@ -1,4 +1,4 @@
-package com.jcommsarray.signaling.stomp;
+package com.jcommsarray.client.signaling.stomp;
 
 public interface StompPayloadCodec {
 

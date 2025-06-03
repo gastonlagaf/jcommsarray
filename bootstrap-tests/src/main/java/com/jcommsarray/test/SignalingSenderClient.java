@@ -1,9 +1,9 @@
 package com.jcommsarray.test;
 
 import com.jcommsarray.client.model.SignalingProperties;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.impl.DefaultSignalingClient;
-import com.jcommsarray.signaling.impl.NoOpSignalingEventHandler;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.impl.DefaultSignalingClient;
+import com.jcommsarray.client.signaling.impl.NoOpSignalingEventHandler;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.Session;
 import com.jcommsarray.signaling.model.SignalingSubscriber;

@@ -7,9 +7,9 @@ import com.jcommsarray.client.ice.transfer.impl.DefaultCandidateTransferOperator
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.protocol.PureProtocol;
 import com.jcommsarray.test.signaling.SampleSignalingEventHandler;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
-import com.jcommsarray.signaling.impl.DefaultSignalingClient;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.impl.DefaultSignalingClient;
 import com.jcommsarray.signaling.model.SignalingSubscriber;
 import com.jcommsarray.test.socket.UdpSockets;
 import lombok.SneakyThrows;

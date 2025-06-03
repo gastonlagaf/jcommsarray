@@ -10,9 +10,9 @@ import com.jcommsarray.client.model.ClientProperties;
 import com.jcommsarray.client.model.ConnectResult;
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.protocol.PureProtocol;
-import com.jcommsarray.signaling.SignalingClient;
-import com.jcommsarray.signaling.SignalingEventHandler;
-import com.jcommsarray.signaling.impl.DefaultSignalingClient;
+import com.jcommsarray.client.signaling.SignalingClient;
+import com.jcommsarray.client.signaling.SignalingEventHandler;
+import com.jcommsarray.client.signaling.impl.DefaultSignalingClient;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.ClosingEvent;
 import com.jcommsarray.signaling.model.InviteEvent;
@@ -104,6 +104,8 @@ public class ConnectionUtility {
             getTransferOperator(hostId, exchangeSession);
         }
 
+        log.info("Ready for incoming connections...");
+
         Thread.currentThread().join();
     }
 
@@ -152,7 +154,6 @@ public class ConnectionUtility {
         long packetsSendInterval = Optional.ofNullable(System.getenv(PACKETS_SEND_INTERVAL))
                 .map(it -> Math.abs(Long.parseLong(it)))
                 .orElse(0L);
-        ;
 
         PureProtocol protocol = connectResult.getProtocol();
 
@@ -188,6 +189,7 @@ public class ConnectionUtility {
 
             @Override
             public List<AddressCandidate> handleInvite(InviteEvent event) {
+                System.out.println("Incoming invite request from " + event.getUserId());
                 SortedSet<Candidate> opponentCandidates = event.getAddresses().stream()
                         .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
                         .collect(Collectors.toCollection(TreeSet::new));

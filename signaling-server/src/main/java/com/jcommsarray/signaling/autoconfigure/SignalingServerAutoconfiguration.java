@@ -1,5 +1,6 @@
 package com.jcommsarray.signaling.autoconfigure;
 
+import com.jcommsarray.signaling.properties.SignalingServerProperties;
 import com.jcommsarray.signaling.repository.SessionDatastore;
 import com.jcommsarray.signaling.repository.SubscriberDatastore;
 import com.jcommsarray.signaling.repository.impl.InMemorySessionDatastore;
@@ -8,7 +9,9 @@ import com.jcommsarray.signaling.service.SessionService;
 import com.jcommsarray.signaling.service.SignalingSubscriberService;
 import com.jcommsarray.signaling.service.impl.DefaultSessionService;
 import com.jcommsarray.signaling.service.impl.DefaultSignalingSubscriberService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -21,7 +24,11 @@ import java.util.Optional;
 
 @Configuration
 @EnableWebSocketMessageBroker
+@EnableConfigurationProperties(SignalingServerProperties.class)
+@RequiredArgsConstructor
 public class SignalingServerAutoconfiguration implements WebSocketMessageBrokerConfigurer {
+
+    private final SignalingServerProperties properties;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -31,8 +38,10 @@ public class SignalingServerAutoconfiguration implements WebSocketMessageBrokerC
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+        String wsEndpoint = Optional.ofNullable(properties.getWsEndpoint()).orElse("/ws");
+        String[] originPatterns = Optional.ofNullable(properties.getOriginPatterns()).orElse(new String[] { "*" });
+        registry.addEndpoint(wsEndpoint)
+                .setAllowedOriginPatterns(originPatterns);
     }
 
     @Bean
