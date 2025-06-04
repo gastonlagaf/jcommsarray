@@ -34,8 +34,6 @@ graalvmNative {
     }
 }
 
-
-
 application {
     mainClass = "com.jcommsarray.test.ConnectionUtility"
 }
