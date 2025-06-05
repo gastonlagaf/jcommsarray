@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @Getter
-@RequiredArgsConstructor(onConstructor = @__(@ConstructorBinding))
+@RequiredArgsConstructor(onConstructor = @__({@ConstructorBinding}))
 @ConfigurationProperties(prefix = "jcommsarray.signalling")
 public class SignalingServerProperties {
 

@@ -1,5 +1,6 @@
 package com.jcommsarray.signaling.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,20 @@ public class AddressCandidate {
 
     private String type;
 
-    private InetSocketAddress value;
+    private String address;
+
+    private Integer port;
+
+    public AddressCandidate(Integer priority, String type, InetSocketAddress value) {
+        this.priority = priority;
+        this.type = type;
+        this.address = value.getAddress().getHostAddress();
+        this.port = value.getPort();
+    }
+
+    @JsonIgnore
+    public InetSocketAddress getValue() {
+        return new InetSocketAddress(address, port);
+    }
 
 }

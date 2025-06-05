@@ -12,6 +12,10 @@ subprojects {
         mavenCentral()
     }
 
+    tasks.named('compileJava').configure {
+        options.compilerArgs = ['-parameters']
+    }
+
     java {
         withSourcesJar()
     }

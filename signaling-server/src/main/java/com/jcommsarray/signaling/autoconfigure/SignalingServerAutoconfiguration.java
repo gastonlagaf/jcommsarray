@@ -24,7 +24,7 @@ import java.util.Optional;
 
 @Configuration
 @EnableWebSocketMessageBroker
-@EnableConfigurationProperties(SignalingServerProperties.class)
+@EnableConfigurationProperties({SignalingServerProperties.class})
 @RequiredArgsConstructor
 public class SignalingServerAutoconfiguration implements WebSocketMessageBrokerConfigurer {
 
