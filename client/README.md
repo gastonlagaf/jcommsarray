@@ -38,6 +38,25 @@ peers with pure string, it is called **_PureProtocol_**. Additionally to default
 required constructor arguments, it accepts boolean flag, which determines, whether
 it should reply to incoming messages, or not.
 
+### SIP setup
+
+To transfer peer's contact information, there should be SIP (or something kind of) 
+server for that. You can implement your own one, so it should have 
+**_CandidateTransferOperator_** implementation. Or you may use default implementation 
+of SIP server with already implemented client logic.
+
+```java
+URI uri = URI.create("ws://127.0.0.1:8080/ws");
+SignalingProperties signalingProperties = new SignalingProperties(uri, Duration.ofSeconds(5));
+SignalingSubscriber signalingSubscriber = new SignalingSubscriber(hostId, List.of());
+SignalingEventHandler eventHandler = new NoOpSignalingEventHandler();
+SignalingAuthorizationProvider authorizationProvider = new DefaultSignalingAuthorizationProvider(hostId);
+SignalingClient signalingClient = new DefaultSignalingClient(
+        signalingProperties, signalingSubscriber, eventHandler, authorizationProvider
+);
+CandidateTransferOperator candidateTransferOperator = new DefaultCandidateTransferOperator<>(signalingClient, exchangeSession);
+```
+
 ### Direct Communication
 
 Such scenario is useful only in case you don't need mechanisms for traversing NATs
@@ -65,7 +84,7 @@ bypass procedures. Below is initialization example with full set of available
 arguments
 
 ```java
-ClientBootstrap<PureProtocol> exchangeSession = new ClientBootstrap<PureProtocol>(sockets)
+ExchangeSession<PureProtocol> exchangeSession = new ExchangeSessionBuilder<PureProtocol>(sockets)
         .withHostId("test_initiator")
         .useSignaling(URI.create("ws://178.13.28.131:8080/ws"))
         .useStun(new InetSocketAddress("95.174.88.11", 3478))
@@ -78,10 +97,13 @@ From client bootstrap you now have access to connection procedure, creating
 **_ClientSession_** instance.
 
 ```java
-ClientSession<PureProtocol> peerConnection = new ClientSession<>(exchangeSession)
+CandidateTransferOperator candidateTransferOperator = getTransferOperator();
+
+PeerConnection<PureProtocol> peerConnection = new PeerConnectionBuilder<>(exchangeSession)
         .as(IceRole.CONTROLLING) // or IceRole.CONTROLLED, if it is receiving peer  
         .connectTo("test_receiver")
-        .mapEstablishedConnection(it -> new PureProtocol(it, false));
+        .mapEstablishedConnection(it -> new PureProtocol(it, false))
+        .useCandidateTransferOperator(candidateTransferOperator);
 
 ConnectResult<PureProtocol> connectResult = peerConnection.connect().join();
 PureProtocol pureProtocol = connectResult.getProtocol();

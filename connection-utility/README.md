@@ -15,12 +15,16 @@ descriptions, how to bootstrap them, as they are required for testing.
 ### Direct Receiver
 
 - SOCKET_TIMEOUT - socket timeout (optional)
+- PACKETS_QUANTITY - number of packets to send (optional)
+- PACKETS_SEND_INTERVAL - interval between send operations (optional)
 
 ### Direct Initiator
 
 - SOCKET_TIMEOUT - socket timeout (optional)
 - TARGET_ADDRESS - address of target peer
 - TARGET_PORT - port of target peer
+- PACKETS_QUANTITY - number of packets to send (optional)
+- PACKETS_SEND_INTERVAL - interval between send operations (optional)
 
 ### ICE Receiver
 
@@ -29,6 +33,8 @@ descriptions, how to bootstrap them, as they are required for testing.
 - STUN_SERVER - address to STUN server instance (port is 3478 by default)
 - TURN_SERVER - address to TURN server instance (port is 3478 by default)
 - SOCKET_TIMEOUT - socket timeout (optional)
+- PACKETS_QUANTITY - number of packets to send (optional)
+- PACKETS_SEND_INTERVAL - interval between send operations (optional)
 
 ### ICE Initiator
 
@@ -38,3 +44,5 @@ descriptions, how to bootstrap them, as they are required for testing.
 - STUN_SERVER - address to STUN server instance (port is 3478 by default)
 - TURN_SERVER - address to TURN server instance (port is 3478 by default)
 - SOCKET_TIMEOUT - socket timeout (optional)
+- PACKETS_QUANTITY - number of packets to send (optional)
+- PACKETS_SEND_INTERVAL - interval between send operations (optional)
