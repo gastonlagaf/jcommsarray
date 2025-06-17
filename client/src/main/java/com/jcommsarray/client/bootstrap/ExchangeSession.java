@@ -26,6 +26,8 @@ public class ExchangeSession<T extends ClientProtocol<?>> implements Closeable {
 
     final Duration socketTimeout;
 
+    final String realm;
+
     final Integer minPort;
 
     final Integer maxPort;

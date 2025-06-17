@@ -9,8 +9,6 @@ import java.nio.ByteBuffer;
 
 public abstract class BaseMessageAttributeCodec<T extends MessageAttribute> implements MessageAttributeCodec {
 
-    private static final Integer ATTRIBUTE_HEADER_LENGTH = 4;
-
     protected static final Integer VALUE_PADDING_LENGTH = 4;
 
     protected static final Integer NO_PADDING_LENGTH = 0;

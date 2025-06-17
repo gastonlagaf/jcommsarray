@@ -19,7 +19,7 @@ public class SubscriberHandler {
 
     @MessageMapping("/register")
     public void register(Principal principal, @Payload RegisterEvent event) {
-        SignalingSubscriber subscriber = new SignalingSubscriber(principal.getName(), event.getCandidates());
+        SignalingSubscriber subscriber = new SignalingSubscriber(principal.getName(), null, event.getCandidates());
         service.save(subscriber);
     }
 

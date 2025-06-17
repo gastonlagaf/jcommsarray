@@ -10,6 +10,8 @@ import com.jcommsarray.test.protocol.model.UdpPacketHandlerResult;
 import com.jcommsarray.test.socket.UdpSockets;
 import com.jcommsarray.turn.codec.impl.MessageCodec;
 import com.jcommsarray.turn.exception.StunProtocolException;
+import com.jcommsarray.turn.integrity.integrity.IntegrityVerifier;
+import com.jcommsarray.turn.integrity.user.model.UserDetails;
 import com.jcommsarray.turn.model.*;
 
 import java.net.InetSocketAddress;
@@ -26,16 +28,20 @@ public class IceProtocol extends TurnAwareClientProtocol<Message> {
 
     private final CompletableFuture<ConnectResult<IceProtocol>> future;
 
-    private final MessageCodec codec = new MessageCodec();
+    private final MessageCodec codec;
 
-    public IceProtocol(UdpSockets sockets, IceSession iceSession, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
-        this(NatBehaviour.NO_NAT, iceSession, sockets, clientProperties, future);
+    private final IntegrityVerifier integrityVerifier;
+
+    public IceProtocol(UdpSockets sockets, IceSession iceSession, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future, UserDetails userDetails, IntegrityVerifier integrityVerifier) {
+        this(NatBehaviour.NO_NAT, iceSession, sockets, clientProperties, future, userDetails, integrityVerifier);
     }
 
-    public IceProtocol(NatBehaviour natBehaviour, IceSession iceSession, UdpSockets sockets, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
+    public IceProtocol(NatBehaviour natBehaviour, IceSession iceSession, UdpSockets sockets, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future, UserDetails userDetails, IntegrityVerifier integrityVerifier) {
         super(natBehaviour, clientProperties, sockets);
         this.iceSession = iceSession;
         this.future = future;
+        this.integrityVerifier = integrityVerifier;
+        this.codec = new MessageCodec(userDetails, PasswordAlgorithm.SHA256);
     }
 
     @Override
@@ -61,6 +67,11 @@ public class IceProtocol extends TurnAwareClientProtocol<Message> {
     @Override
     public UdpPacketHandlerResult handle(InetSocketAddress receiverAddress, InetSocketAddress senderAddress, Message packet) {
         String txId = HexFormat.of().formatHex(packet.getHeader().getTransactionId());
+
+        if (MessageType.BINDING_RESPONSE.equals(packet.getHeader().getType())) {
+            integrityVerifier.check(packet);
+        }
+
         if (!pendingMessages.complete(txId, packet) && MessageType.BINDING_REQUEST.equals(packet.getHeader().getType())) {
             boolean shouldNominate = packet.getAttributes().containsKey(KnownAttributeName.USE_CANDIDATE.getCode())
                     && IceRole.CONTROLLED.equals(iceSession.getRole());

@@ -9,6 +9,8 @@ public class IceProperties {
 
     private final String targetContactId;
 
+    private final String realm;
+
     private final IceRole role;
 
     private final Integer componentId;
@@ -20,12 +22,13 @@ public class IceProperties {
     private final Integer maxPort;
 
     public IceProperties(IceRole role, Integer componentId, Integer retries, Integer minPort, Integer maxPort) {
-        this(null, null, role, componentId, retries, minPort, maxPort);
+        this(null, null, null, role, componentId, retries, minPort, maxPort);
     }
 
-    public IceProperties(String sourceContactId, String targetContactId, IceRole role, Integer componentId, Integer retries, Integer minPort, Integer maxPort) {
+    public IceProperties(String sourceContactId, String targetContactId, String realm, IceRole role, Integer componentId, Integer retries, Integer minPort, Integer maxPort) {
         this.sourceContactId = sourceContactId;
         this.targetContactId = targetContactId;
+        this.realm = realm;
         this.role = role;
         this.componentId = componentId;
         this.retries = retries;

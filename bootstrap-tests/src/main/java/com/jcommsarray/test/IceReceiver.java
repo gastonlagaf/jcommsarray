@@ -40,13 +40,11 @@ public class IceReceiver {
         SignalingEventHandler eventHandler = new SampleSignalingEventHandler(exchangeSession);
         SignalingClient signalingClient = new DefaultSignalingClient(
                 signalingProperties,
-                new SignalingSubscriber("pupa", List.of()),
+                new SignalingSubscriber("pupa", null, List.of()),
                 eventHandler
         );
 
-        CandidateTransferOperator candidateTransferOperator = new DefaultCandidateTransferOperator<>(
-                signalingClient, exchangeSession
-        );
+        CandidateTransferOperator candidateTransferOperator = new DefaultCandidateTransferOperator<>(signalingClient);
 
         System.out.println("Initiated signaling client. Awaiting for connection requests...");
 

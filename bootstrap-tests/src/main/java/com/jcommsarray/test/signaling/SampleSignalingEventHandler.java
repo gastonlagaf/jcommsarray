@@ -5,11 +5,13 @@ import com.jcommsarray.client.bootstrap.PeerConnection;
 import com.jcommsarray.client.ice.model.Candidate;
 import com.jcommsarray.client.ice.model.CandidateType;
 import com.jcommsarray.client.ice.model.IceRole;
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.protocol.PureProtocol;
 import com.jcommsarray.client.signaling.SignalingEventHandler;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.ClosingEvent;
 import com.jcommsarray.signaling.model.InviteEvent;
+import com.jcommsarray.signaling.model.SignalingSubscriber;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +30,7 @@ public class SampleSignalingEventHandler implements SignalingEventHandler {
     }
 
     @Override
-    public List<AddressCandidate> handleInvite(InviteEvent event) {
+    public PeerConnectDetails handleInvite(InviteEvent event) {
         SortedSet<Candidate> opponentCandidates = event.getAddresses().stream()
                 .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
                 .collect(Collectors.toCollection(TreeSet::new));
@@ -42,9 +44,10 @@ public class SampleSignalingEventHandler implements SignalingEventHandler {
                 })
                 .build();
 
-        peerConnection.connect(opponentCandidates);
+        PeerConnectDetails opponentConnectDetails = new PeerConnectDetails(event.getPassword(),  opponentCandidates);
+        peerConnection.connect(opponentConnectDetails);
 
-        return peerConnection.getAddressCandidates();
+        return peerConnection.getConnectDetails();
     }
 
     @SneakyThrows

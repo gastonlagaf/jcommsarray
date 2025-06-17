@@ -1,9 +1,9 @@
 package com.jcommsarray.client.ice.transfer.impl;
 
-import com.jcommsarray.client.bootstrap.ExchangeSession;
 import com.jcommsarray.client.ice.model.Candidate;
 import com.jcommsarray.client.ice.model.CandidateType;
 import com.jcommsarray.client.ice.transfer.CandidateTransferOperator;
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.signaling.SignalingClient;
 import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.signaling.model.SignalingSubscriber;
@@ -20,17 +20,14 @@ public class DefaultCandidateTransferOperator<T extends ClientProtocol<?>> imple
 
     private final SignalingClient signalingClient;
 
-    private final ExchangeSession<T> exchangeSession;
-
     private String sessionId;
 
-    public DefaultCandidateTransferOperator(SignalingClient signalingClient, ExchangeSession<T> exchangeSession) {
+    public DefaultCandidateTransferOperator(SignalingClient signalingClient) {
         this.signalingClient = signalingClient;
-        this.exchangeSession = exchangeSession;
     }
 
     @Override
-    public SortedSet<Candidate> exchange(String sourceContactId, String targetContactId, SortedSet<Candidate> candidates) {
+    public PeerConnectDetails exchange(String sourceContactId, String targetContactId, SortedSet<Candidate> candidates, String password) {
         String sessionId = Optional.ofNullable(this.sessionId).orElseGet(() -> {
             this.sessionId = signalingClient.createSession().join().getId();
             return this.sessionId;
@@ -38,10 +35,13 @@ public class DefaultCandidateTransferOperator<T extends ClientProtocol<?>> imple
         List<AddressCandidate> addressCandidates = candidates.stream()
                 .map(it -> new AddressCandidate(it.getPriority(), it.getType().name(), it.getActualAddress()))
                 .toList();
-        SignalingSubscriber signalingSubscriber = signalingClient.invite(sessionId, targetContactId, addressCandidates).join();
-        return signalingSubscriber.getAddresses().stream()
+        SignalingSubscriber signalingSubscriber = signalingClient.invite(
+                sessionId, targetContactId, addressCandidates, password
+        ).join();
+        SortedSet<Candidate> opponentCandidates = signalingSubscriber.getAddresses().stream()
                 .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
                 .collect(Collectors.toCollection(TreeSet::new));
+        return new PeerConnectDetails(signalingSubscriber.getPassword(), opponentCandidates);
     }
 
     @Override

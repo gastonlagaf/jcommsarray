@@ -12,7 +12,7 @@ public interface SignalingClient extends Closeable {
 
     CompletableFuture<Session> createSession();
 
-    CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates);
+    CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates, String password);
 
     CompletableFuture<Void> removeSubscriber(String sessionId, String subscriberId);
 

@@ -51,7 +51,10 @@ public class DefaultSessionService implements SessionService {
                     getSubscriber(it.getId(), inviteEvent.getUserId());
                     it.getParticipantIds().add(inviteEvent.getUserId());
                     Session result = datastore.save(it);
-                    signalingSubscriberService.send(inviteEvent.getUserId(), new InviteEvent(it.getId(), it.getHostId(), inviteEvent.getAddresses()));
+                    signalingSubscriberService.send(
+                            inviteEvent.getUserId(),
+                            new InviteEvent(it.getId(), it.getHostId(), inviteEvent.getAddresses(), inviteEvent.getPassword())
+                    );
                     return result;
                 })
                 .orElseThrow(() -> new SessionException(id, hostId, "Session not found"));
@@ -62,8 +65,11 @@ public class DefaultSessionService implements SessionService {
         return datastore.findById(id)
                 .filter(it -> it.getParticipantIds().contains(subscriberId))
                 .map(it -> {
-                    SignalingSubscriber targetSubscriber = new SignalingSubscriber(subscriberId, event.getAddresses());
-                    signalingSubscriberService.send(it.getHostId(), new InviteAnsweredEvent(it.getId(), targetSubscriber.getId(), targetSubscriber.getAddresses()));
+                    SignalingSubscriber targetSubscriber = new SignalingSubscriber(subscriberId, event.getPassword(), event.getAddresses());
+                    InviteAnsweredEvent inviteAnsweredEvent = new InviteAnsweredEvent(
+                            it.getId(), targetSubscriber.getId(), targetSubscriber.getAddresses(), event.getPassword()
+                    );
+                    signalingSubscriberService.send(it.getHostId(), inviteAnsweredEvent);
                     return it;
                 })
                 .orElseThrow(() -> new SessionException(id, subscriberId, "Session not found"));

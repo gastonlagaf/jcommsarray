@@ -6,6 +6,7 @@ import com.jcommsarray.client.ice.model.CandidateType;
 import com.jcommsarray.client.ice.model.IceRole;
 import com.jcommsarray.client.ice.transfer.CandidateTransferOperator;
 import com.jcommsarray.client.ice.transfer.impl.DefaultCandidateTransferOperator;
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.model.ClientProperties;
 import com.jcommsarray.client.model.ConnectResult;
 import com.jcommsarray.client.model.SignalingProperties;
@@ -140,11 +141,11 @@ public class ConnectionUtility {
                 .map(URI::create)
                 .orElseThrow(() -> new IllegalArgumentException(SIGNALING_SERVER + " is not set"));
         SignalingProperties signalingProperties = new SignalingProperties(signalingURI, Duration.ofSeconds(5));
-        SignalingSubscriber signalingSubscriber = new SignalingSubscriber(hostId, List.of());
+        SignalingSubscriber signalingSubscriber = new SignalingSubscriber(hostId, null, List.of());
         SignalingEventHandler eventHandler = getSignalingEventHandler(exchangeSession);
         SignalingClient signalingClient = new DefaultSignalingClient(signalingProperties, signalingSubscriber, eventHandler);
 
-        return new DefaultCandidateTransferOperator<>(signalingClient, exchangeSession);
+        return new DefaultCandidateTransferOperator<>(signalingClient);
     }
 
     private static void test(ExchangeSession<PureProtocol> exchangeSession, ConnectResult<PureProtocol> connectResult, CandidateTransferOperator candidateTransferOperator) {
@@ -188,7 +189,7 @@ public class ConnectionUtility {
         return new SignalingEventHandler() {
 
             @Override
-            public List<AddressCandidate> handleInvite(InviteEvent event) {
+            public PeerConnectDetails handleInvite(InviteEvent event) {
                 System.out.println("Incoming invite request from " + event.getUserId());
                 SortedSet<Candidate> opponentCandidates = event.getAddresses().stream()
                         .map(it -> new Candidate(it.getValue(), CandidateType.valueOf(it.getType()), it.getPriority()))
@@ -203,9 +204,10 @@ public class ConnectionUtility {
                         })
                         .build();
 
-                peerConnectionBuilder.connect(opponentCandidates);
-
-                return peerConnectionBuilder.getAddressCandidates();
+                PeerConnectDetails opponentConnectDetails = new PeerConnectDetails(event.getPassword(), opponentCandidates);
+                peerConnectionBuilder.connect(opponentConnectDetails);
+                PeerConnectDetails peerConnectDetails = peerConnectionBuilder.getConnectDetails();
+                return peerConnectDetails;
             }
 
             @Override

@@ -62,9 +62,9 @@ public class IceInitiator {
         );
         SignalingEventHandler eventHandler = new SampleSignalingEventHandler(exchangeSession);
         SignalingClient signalingClient = new DefaultSignalingClient(
-                signalingProperties, new SignalingSubscriber("pupa", List.of()), eventHandler
+                signalingProperties, new SignalingSubscriber("pupa", null, List.of()), eventHandler
         );
-        return new DefaultCandidateTransferOperator<>(signalingClient, exchangeSession);
+        return new DefaultCandidateTransferOperator<>(signalingClient);
     }
 
     private static void test(ConnectResult<PureProtocol> connectResult) {

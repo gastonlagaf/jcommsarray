@@ -13,9 +13,12 @@ public class InviteEvent extends SessionEvent {
 
     private List<AddressCandidate> addresses;
 
-    public InviteEvent(String sessionId, String userId, List<AddressCandidate> addresses) {
+    private String password;
+
+    public InviteEvent(String sessionId, String userId, List<AddressCandidate> addresses, String password) {
         super(EventType.INVITE, sessionId, userId);
         this.addresses = addresses;
+        this.password = password;
     }
 
 }

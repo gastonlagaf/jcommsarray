@@ -1,5 +1,6 @@
 package com.jcommsarray.test;
 
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.signaling.SignalingClient;
 import com.jcommsarray.client.signaling.SignalingEventHandler;
@@ -21,15 +22,15 @@ public class SignalingReceiverClient {
         SignalingProperties properties = new SignalingProperties(
                 URI.create("ws://127.0.0.1:8080/ws"), Duration.ofSeconds(10L)
         );
-        SignalingSubscriber signalingSubscriber = new SignalingSubscriber("op2", List.of(
+        SignalingSubscriber signalingSubscriber = new SignalingSubscriber("op2", null, List.of(
                 new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("127.0.0.1", 5126)),
                 new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("192.168.0.121", 5126))
         ));
         SignalingEventHandler signalingEventHandler = new SignalingEventHandler() {
             @Override
-            public List<AddressCandidate> handleInvite(InviteEvent event) {
+            public PeerConnectDetails handleInvite(InviteEvent event) {
                 System.out.println("Received Invite event: " + event.getSessionId());
-                return List.of();
+                return PeerConnectDetails.INSTANCE;
             }
 
             @Override

@@ -39,6 +39,7 @@ public class IntegrityUtils {
 
     public static byte[] constructKey(PasswordAlgorithm passwordAlgorithm, String username, String realm, String password) {
         String rawKey = String.format(RAW_KEY_FORMAT, username, realm, password);
+        System.out.println(rawKey);
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance(passwordAlgorithm.getDigestName());

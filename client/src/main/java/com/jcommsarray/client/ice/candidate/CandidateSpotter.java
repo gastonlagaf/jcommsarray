@@ -14,6 +14,8 @@ import com.jcommsarray.client.turn.proxy.TurnProxy;
 import com.jcommsarray.test.discovery.InternetDiscovery;
 import com.jcommsarray.test.exception.SocketRegistrationException;
 import com.jcommsarray.test.socket.UdpSockets;
+import com.jcommsarray.turn.integrity.integrity.IntegrityVerifier;
+import com.jcommsarray.turn.integrity.user.model.UserDetails;
 import com.jcommsarray.turn.model.NatBehaviour;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,14 +42,20 @@ public class CandidateSpotter {
 
     private final CompletableFuture<ConnectResult<IceProtocol>> future;
 
+    private final UserDetails userDetails;
+
+    private final IntegrityVerifier integrityVerifier;
+
     private final AtomicInteger localPreferenceCounter = new AtomicInteger(65000);
 
-    public CandidateSpotter(UdpSockets udpSockets, IceSession iceSession, IceProperties iceProperties, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future) {
+    public CandidateSpotter(UdpSockets udpSockets, IceSession iceSession, IceProperties iceProperties, ClientProperties clientProperties, CompletableFuture<ConnectResult<IceProtocol>> future, UserDetails userDetails, IntegrityVerifier integrityVerifier) {
         this.iceSession = iceSession;
         this.iceProperties = iceProperties;
         this.clientProperties = clientProperties;
         this.udpSockets = udpSockets;
         this.future = future;
+        this.userDetails = userDetails;
+        this.integrityVerifier = integrityVerifier;
         this.portCounter = new AtomicInteger(iceProperties.getMinPort());
     }
 
@@ -140,7 +148,7 @@ public class CandidateSpotter {
             return null;
         }
 
-        IceProtocol iceProtocol = new IceProtocol(udpSockets, iceSession, localProperties, future);
+        IceProtocol iceProtocol = new IceProtocol(udpSockets, iceSession, localProperties, future, userDetails, integrityVerifier);
         iceProtocol.start();
 
         return new Candidate(
@@ -162,7 +170,7 @@ public class CandidateSpotter {
                 ? NatBehaviour.ADDRESS_AND_PORT_DEPENDENT
                 : NatBehaviour.NO_NAT;
 
-        IceProtocol iceProtocol = new IceProtocol(natBehaviour, iceSession, udpSockets, localProperties, future);
+        IceProtocol iceProtocol = new IceProtocol(natBehaviour, iceSession, udpSockets, localProperties, future, userDetails, integrityVerifier);
         try {
             iceProtocol.start();
         } catch (Exception ex) {

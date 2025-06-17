@@ -2,15 +2,14 @@ package com.jcommsarray.client.bootstrap;
 
 import com.jcommsarray.client.ice.IceConnector;
 import com.jcommsarray.client.ice.impl.DefaultIceConnector;
-import com.jcommsarray.client.ice.model.Candidate;
 import com.jcommsarray.client.ice.model.IceProperties;
 import com.jcommsarray.client.ice.model.IceRole;
 import com.jcommsarray.client.ice.transfer.CandidateTransferOperator;
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.model.ClientProperties;
 import com.jcommsarray.client.model.ConnectResult;
 import com.jcommsarray.client.protocol.PureProtocol;
 import com.jcommsarray.client.protocol.TurnAwareClientProtocol;
-import com.jcommsarray.signaling.model.AddressCandidate;
 import com.jcommsarray.test.protocol.ClientProtocol;
 import com.jcommsarray.turn.model.NatBehaviour;
 
@@ -18,9 +17,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
-import java.util.SortedSet;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -39,6 +37,8 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
 
     private final Consumer<PeerConnection<T>> onEstablishedConnection;
 
+    private final String password = UUID.randomUUID().toString();
+
     private InetSocketAddress targetAddress;
 
     private IceConnector iceConnector;
@@ -55,18 +55,16 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
         this.targetAddress = targetAddress;
     }
 
-    public List<AddressCandidate> getAddressCandidates() {
+    public PeerConnectDetails getConnectDetails() {
         if (null == iceConnector) {
             validateIceBootstrap();
 
             this.iceConnector = initiateIceConnector();
         }
-        return this.iceConnector.getLocalCandidates().stream()
-                .map(it -> new AddressCandidate(it.getPriority(), it.getType().name(), it.getActualAddress()))
-                .toList();
+        return new PeerConnectDetails(password, this.iceConnector.getLocalCandidates());
     }
 
-    public CompletableFuture<ConnectResult<T>> connect(SortedSet<Candidate> candidates) {
+    public CompletableFuture<ConnectResult<T>> connect(PeerConnectDetails peerConnectDetails) {
         validate();
         if (null == opponentId) {
             throw new IllegalArgumentException("Bootstrap is not configured for ice connection");
@@ -75,7 +73,7 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
             this.iceConnector = initiateIceConnector();
             return this.iceConnector;
         });
-        return iceConnector.connect(opponentId, candidates)
+        return iceConnector.connect(opponentId, peerConnectDetails)
                 .thenApplyAsync(this::mapConnectResult);
     }
 
@@ -154,7 +152,7 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
 
     private IceConnector initiateIceConnector() {
         IceProperties iceProperties = new IceProperties(
-                exchangeSession.hostId, opponentId, iceRole, 1, 3, exchangeSession.minPort, exchangeSession.maxPort
+                exchangeSession.hostId, opponentId, exchangeSession.realm, iceRole, 1, 3, exchangeSession.minPort, exchangeSession.maxPort
         );
         ClientProperties clientProperties = new ClientProperties(
                 null, null, exchangeSession.stunAddress, exchangeSession.turnAddress,
@@ -165,7 +163,8 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
                 exchangeSession.sockets,
                 iceProperties,
                 clientProperties,
-                candidateTransferOperator
+                candidateTransferOperator,
+                this.password
         );
     }
 

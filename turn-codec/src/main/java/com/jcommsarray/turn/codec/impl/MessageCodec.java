@@ -42,6 +42,13 @@ public class MessageCodec implements CommunicationCodec<Message> {
             message.getAttributes().put(passwordAlgorithmAttribute);
         }
 
+        if (null != userDetails) {
+            DefaultMessageAttribute usernameAttribute = new DefaultMessageAttribute(
+                    KnownAttributeName.USERNAME.getCode(), 0, userDetails.getUsername().getBytes()
+            );
+            message.getAttributes().put(usernameAttribute);
+        }
+
         NonResizableBuffer buffer = new NonResizableBuffer();
 
         MessageHeader header = new MessageHeader(message.getHeader(), buffer.size());

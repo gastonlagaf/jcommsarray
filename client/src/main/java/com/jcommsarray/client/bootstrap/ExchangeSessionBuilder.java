@@ -25,6 +25,8 @@ public class ExchangeSessionBuilder<T extends ClientProtocol<?>> {
 
     Duration socketTimeout;
 
+    String realm;
+
     Integer minPort;
 
     Integer maxPort;
@@ -61,11 +63,17 @@ public class ExchangeSessionBuilder<T extends ClientProtocol<?>> {
         return this;
     }
 
+    public ExchangeSessionBuilder<T> withRealm(String realm) {
+        this.realm = realm;
+        return this;
+    }
+
     public ExchangeSession<T> build() {
         this.minPort = Optional.ofNullable(this.minPort).orElse(MIN_PORT);
         this.maxPort = Optional.ofNullable(this.maxPort).orElse(MAX_PORT);
+        this.realm = Optional.ofNullable(this.realm).orElse("default");
 
-        return new ExchangeSession<>(sockets, hostId, stunAddress, turnAddress, socketTimeout, minPort, maxPort);
+        return new ExchangeSession<>(sockets, hostId, stunAddress, turnAddress, socketTimeout, realm, minPort, maxPort);
     }
 
 }

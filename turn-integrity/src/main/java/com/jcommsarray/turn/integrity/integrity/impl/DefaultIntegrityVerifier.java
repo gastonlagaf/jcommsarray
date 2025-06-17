@@ -24,6 +24,7 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
         IntegrityVerificationDetails details = extractDetails(message);
 
         UserDetails userDetails = details.getUserDetails();
+        System.out.println("Integrity verification...");
         byte[] key = IntegrityUtils.constructKey(
                 details.getPasswordAlgorithm(), userDetails.getUsername(), realm, userDetails.getPassword()
         );
@@ -38,7 +39,9 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
     }
 
     private IntegrityVerificationDetails extractDetails(Message message) {
-        MessageIntegrityAttribute targetAttribute = message.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256);
+        MessageIntegrityAttribute targetAttribute = Optional.ofNullable(
+                message.getAttributes().<MessageIntegrityAttribute>get(KnownAttributeName.MESSAGE_INTEGRITY_SHA256)
+        ).orElseGet(() -> message.getAttributes().get(KnownAttributeName.MESSAGE_INTEGRITY));
         if (null == targetAttribute) {
             throw new StunProtocolException("No auth details provided", ErrorCode.UNAUTHENTICATED.getCode());
         }

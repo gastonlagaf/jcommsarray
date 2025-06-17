@@ -54,7 +54,7 @@ public class StompCodecTests {
                 new InviteEvent("1", "2", List.of(
                         new AddressCandidate(1, "HOST", InetSocketAddress.createUnresolved("127.0.0.1", 2022)),
                         new AddressCandidate(2, "HOST", InetSocketAddress.createUnresolved("192.168.0.104", 2023))
-                ))
+                ), "password")
         );
         String result = codec.encode(stompMessage);
 

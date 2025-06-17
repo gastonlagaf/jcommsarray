@@ -13,9 +13,12 @@ public class InviteAnsweredEvent extends SessionEvent {
 
     private List<AddressCandidate> addresses;
 
-    public InviteAnsweredEvent(String sessionId, String userId, List<AddressCandidate> addresses) {
+    private String password;
+
+    public InviteAnsweredEvent(String sessionId, String userId, List<AddressCandidate> addresses, String password) {
         super(EventType.INVITE_ANSWERED, sessionId, userId);
         this.addresses = addresses;
+        this.password = password;
     }
 
 }

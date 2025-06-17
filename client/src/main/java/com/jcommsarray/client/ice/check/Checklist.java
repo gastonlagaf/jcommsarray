@@ -42,7 +42,9 @@ public class Checklist {
 
     private final ReentrantLock lock = new ReentrantLock();
 
-    public Checklist(Integer retries, IceSession iceSession, SortedSet<CandidatePair> pairs, CompletableFuture<ConnectResult<IceProtocol>> future) {
+    private final String subscriberId;
+
+    public Checklist(Integer retries, IceSession iceSession, SortedSet<CandidatePair> pairs, CompletableFuture<ConnectResult<IceProtocol>> future, String subscriberId) {
         this.iceSession = iceSession;
         if (pairs.isEmpty()) {
             throw new IllegalArgumentException("Pairs must not be empty");
@@ -51,6 +53,7 @@ public class Checklist {
         this.rto = Math.max(DEFAULT_RTO, TA * pairs.size());
         this.retries = retries;
         this.future = future;
+        this.subscriberId = subscriberId;
     }
 
     public CompletableFuture<ConnectResult<IceProtocol>> check() {

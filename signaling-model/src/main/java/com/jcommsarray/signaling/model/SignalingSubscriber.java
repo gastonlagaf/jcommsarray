@@ -15,6 +15,8 @@ public class SignalingSubscriber {
 
     private String id;
 
+    private String password;
+
     private List<AddressCandidate> addresses;
 
 }

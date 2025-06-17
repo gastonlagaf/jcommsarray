@@ -3,6 +3,7 @@ package com.jcommsarray.client.signaling.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jcommsarray.client.PendingMessages;
+import com.jcommsarray.client.ice.transfer.model.PeerConnectDetails;
 import com.jcommsarray.client.model.SignalingProperties;
 import com.jcommsarray.client.signaling.SignalingAuthorizationProvider;
 import com.jcommsarray.client.signaling.SignalingClient;
@@ -94,13 +95,13 @@ public class DefaultSignalingClient implements SignalingClient {
     }
 
     @Override
-    public CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates) {
-        InviteEvent inviteEvent = new InviteEvent(sessionId, subscriberId, addressCandidates);
+    public CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates, String password) {
+        InviteEvent inviteEvent = new InviteEvent(sessionId, subscriberId, addressCandidates, password);
         return sendAndReceive(inviteEvent)
                 .thenApply(it -> {
                     if (it instanceof InviteAnsweredEvent inviteAnsweredEvent) {
                         send(new AcknowledgedEvent(sessionId, subscriberId));
-                        return new SignalingSubscriber(it.getUserId(), inviteAnsweredEvent.getAddresses());
+                        return new SignalingSubscriber(it.getUserId(), inviteAnsweredEvent.getPassword(), inviteAnsweredEvent.getAddresses());
                     } else {
                         return null;
                     }
@@ -187,10 +188,18 @@ public class DefaultSignalingClient implements SignalingClient {
             }
             switch (sessionEvent) {
                 case InviteEvent inviteEvent -> {
-                    List<AddressCandidate> addresses = signalingEventHandler.handleInvite(inviteEvent);
-                    SessionEvent answer = Optional.ofNullable(addresses).map(it -> !it.isEmpty()).orElse(false)
-                            ? new InviteAnsweredEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), addresses)
-                            : new CancelEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), "Rejected");
+                    PeerConnectDetails peerConnectDetails = signalingEventHandler.handleInvite(inviteEvent);
+                    SessionEvent answer;
+                    if (null == peerConnectDetails) {
+                        answer = new CancelEvent(inviteEvent.getSessionId(), signalingSubscriber.getId(), "Rejected");
+                    } else {
+                        List<AddressCandidate> addressCandidates = peerConnectDetails.getCandidates().stream()
+                                .map(it -> new AddressCandidate(it.getPriority(), it.getType().toString(), it.getActualAddress()))
+                                .toList();
+                        answer = new InviteAnsweredEvent(
+                                inviteEvent.getSessionId(), signalingSubscriber.getId(), addressCandidates, peerConnectDetails.getPassword()
+                        );
+                    }
                     send(answer);
                 }
                 case ClosingEvent closingEvent -> {
