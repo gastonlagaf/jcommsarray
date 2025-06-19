@@ -89,6 +89,7 @@ ExchangeSession<PureProtocol> exchangeSession = new ExchangeSessionBuilder<PureP
         .useSignaling(URI.create("ws://178.13.28.131:8080/ws"))
         .useStun(new InetSocketAddress("95.174.88.11", 3478))
         .useTurn(new InetSocketAddress("95.174.88.11", 3478))
+        .withRealm("example.com")
         .useSocketTimeout(Duration.ofMillis(400L))
         .build();
 ```
