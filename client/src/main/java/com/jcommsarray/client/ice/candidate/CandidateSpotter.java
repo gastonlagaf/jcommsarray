@@ -88,8 +88,8 @@ public class CandidateSpotter {
             throw new IllegalArgumentException("Only stun and turn candidates required");
         }
         InetSocketAddress targetAddress = CandidateType.SERVER_REFLEXIVE.equals(candidateType)
-                ? clientProperties.getTurnAddress()
-                : clientProperties.getStunAddress();
+                ? clientProperties.getTurnConfig().getAddress()
+                : clientProperties.getStunConfig().getAddress();
         if (null == targetAddress) {
             return List.of();
         }
@@ -104,15 +104,6 @@ public class CandidateSpotter {
             }
         }
         return List.of();
-    }
-
-    private List<InetAddress> introspectNetworkInterface(NetworkInterface networkInterface) throws SocketException {
-        if (!networkInterface.isUp() || networkInterface.isLoopback()) {
-            return List.of();
-        }
-        return networkInterface.inetAddresses()
-                .filter(it -> it instanceof Inet4Address && !it.isLinkLocalAddress())
-                .collect(Collectors.toList());
     }
 
     private Candidate bind(InetAddress inetAddress, CandidateType type, Integer localPreference) {
@@ -133,8 +124,8 @@ public class CandidateSpotter {
         ClientProperties localProperties = new ClientProperties(
                 new InetSocketAddress(inetAddress, port),
                 null,
-                clientProperties.getStunAddress(),
-                clientProperties.getTurnAddress(),
+                clientProperties.getStunConfig(),
+                clientProperties.getTurnConfig(),
                 clientProperties.getSocketTimeout()
         );
         InetSocketAddress actualAddress;
@@ -162,8 +153,8 @@ public class CandidateSpotter {
         ClientProperties localProperties = new ClientProperties(
                 new InetSocketAddress(inetAddress, port),
                 null,
-                clientProperties.getStunAddress(),
-                clientProperties.getTurnAddress(),
+                clientProperties.getStunConfig(),
+                clientProperties.getTurnConfig(),
                 clientProperties.getSocketTimeout()
         );
         NatBehaviour natBehaviour = CandidateType.SERVER_REFLEXIVE.equals(type)

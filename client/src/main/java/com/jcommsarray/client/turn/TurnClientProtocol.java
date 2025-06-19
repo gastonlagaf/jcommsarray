@@ -29,7 +29,7 @@ public class TurnClientProtocol<T> extends TurnAwareClientProtocol<Message> {
             MessageType.REFRESH
     );
 
-    private final CommunicationCodec<Message> codec = new MessageCodec();
+    private final CommunicationCodec<Message> codec;
 
     private final ClientProtocol<T> targetProtocol;
 
@@ -40,11 +40,13 @@ public class TurnClientProtocol<T> extends TurnAwareClientProtocol<Message> {
         this.targetProtocol = targetProtocol;
         this.channelBindings = baseTurnClientProtocol.channelBindings;
         this.selectionKey = baseTurnClientProtocol.selectionKey;
+        this.codec = new MessageCodec(clientProperties.getTurnConfig().getUserDetails(), PasswordAlgorithm.SHA256);
     }
 
     public TurnClientProtocol(UdpSockets udpSockets, ClientProtocol<T> targetProtocol, ClientProperties clientProperties) {
         super(NatBehaviour.NO_NAT, clientProperties, udpSockets);
         this.targetProtocol = targetProtocol;
+        this.codec = new MessageCodec(clientProperties.getTurnConfig().getUserDetails(), PasswordAlgorithm.SHA256);
     }
 
     @Override
@@ -87,7 +89,7 @@ public class TurnClientProtocol<T> extends TurnAwareClientProtocol<Message> {
     @Override
     public void start() {
         super.start();
-        ((TurnClient) this.getClient()).start(clientProperties.getTurnAddress());
+        ((TurnClient) this.getClient()).start(clientProperties.getTurnConfig().getAddress());
     }
 
     private InetSocketAddress extractSender(Message message) {

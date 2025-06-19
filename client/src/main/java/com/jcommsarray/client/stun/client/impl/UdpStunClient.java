@@ -23,7 +23,7 @@ public class UdpStunClient extends UdpClientDelegate<Message> implements StunCli
     public UdpStunClient(UdpClient<Message> client, ClientProperties properties) {
         super(client);
         this.properties = properties;
-        this.defaultTargetAddress = properties.getStunAddress();
+        this.defaultTargetAddress = properties.getStunConfig().getAddress();
     }
 
     @Override
@@ -53,7 +53,9 @@ public class UdpStunClient extends UdpClientDelegate<Message> implements StunCli
             return NatBehaviour.ENDPOINT_INDEPENDENT;
         }
 
-        InetSocketAddress address3 = new InetSocketAddress(addressAttribute2.getAddress(), properties.getStunAddress().getPort());
+        InetSocketAddress address3 = new InetSocketAddress(
+                addressAttribute2.getAddress(), properties.getStunConfig().getAddress().getPort()
+        );
         Message test3 = sendBinding(address3, Map.of());
         AddressAttribute addressAttribute3 = getMappedAddress(test3);
 

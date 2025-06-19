@@ -1,5 +1,6 @@
 package com.jcommsarray.client.bootstrap;
 
+import com.jcommsarray.client.model.StunProperties;
 import com.jcommsarray.test.protocol.ClientProtocol;
 import com.jcommsarray.test.socket.UdpSockets;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +21,9 @@ public class ExchangeSession<T extends ClientProtocol<?>> implements Closeable {
 
     final String hostId;
 
-    final InetSocketAddress stunAddress;
+    final StunProperties stunConfig;
 
-    final InetSocketAddress turnAddress;
+    final StunProperties turnConfig;
 
     final Duration socketTimeout;
 

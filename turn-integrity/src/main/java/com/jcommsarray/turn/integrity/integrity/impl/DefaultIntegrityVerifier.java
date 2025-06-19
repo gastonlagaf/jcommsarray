@@ -24,7 +24,6 @@ public class DefaultIntegrityVerifier implements IntegrityVerifier {
         IntegrityVerificationDetails details = extractDetails(message);
 
         UserDetails userDetails = details.getUserDetails();
-        System.out.println("Integrity verification...");
         byte[] key = IntegrityUtils.constructKey(
                 details.getPasswordAlgorithm(), userDetails.getUsername(), realm, userDetails.getPassword()
         );

@@ -97,15 +97,14 @@ public class DefaultSignalingClient implements SignalingClient {
     @Override
     public CompletableFuture<SignalingSubscriber> invite(String sessionId, String subscriberId, List<AddressCandidate> addressCandidates, String password) {
         InviteEvent inviteEvent = new InviteEvent(sessionId, subscriberId, addressCandidates, password);
-        return sendAndReceive(inviteEvent)
-                .thenApply(it -> {
-                    if (it instanceof InviteAnsweredEvent inviteAnsweredEvent) {
-                        send(new AcknowledgedEvent(sessionId, subscriberId));
-                        return new SignalingSubscriber(it.getUserId(), inviteAnsweredEvent.getPassword(), inviteAnsweredEvent.getAddresses());
-                    } else {
-                        return null;
-                    }
-                });
+        return sendAndReceive(inviteEvent).thenApply(it -> {
+            if (it instanceof InviteAnsweredEvent inviteAnsweredEvent) {
+                send(new AcknowledgedEvent(sessionId, subscriberId));
+                return new SignalingSubscriber(it.getUserId(), inviteAnsweredEvent.getPassword(), inviteAnsweredEvent.getAddresses());
+            } else {
+                return null;
+            }
+        });
     }
 
     @Override

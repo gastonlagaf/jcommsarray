@@ -1,7 +1,9 @@
 package com.jcommsarray.client.bootstrap;
 
+import com.jcommsarray.client.model.StunProperties;
 import com.jcommsarray.test.protocol.ClientProtocol;
 import com.jcommsarray.test.socket.UdpSockets;
+import com.jcommsarray.turn.integrity.user.model.UserDetails;
 import lombok.RequiredArgsConstructor;
 
 import java.net.InetSocketAddress;
@@ -19,9 +21,9 @@ public class ExchangeSessionBuilder<T extends ClientProtocol<?>> {
 
     String hostId;
 
-    InetSocketAddress stunAddress;
+    StunProperties stunConfig;
 
-    InetSocketAddress turnAddress;
+    StunProperties turnConfig;
 
     Duration socketTimeout;
 
@@ -37,12 +39,24 @@ public class ExchangeSessionBuilder<T extends ClientProtocol<?>> {
     }
 
     public ExchangeSessionBuilder<T> useStun(InetSocketAddress stunAddress) {
-        this.stunAddress = stunAddress;
+        this.stunConfig = new StunProperties(stunAddress, null);
+        return this;
+    }
+
+    public ExchangeSessionBuilder<T> useStun(InetSocketAddress stunAddress, String username, String password, String realm) {
+        UserDetails userDetails = new UserDetails(username, password, realm);
+        this.stunConfig = new StunProperties(stunAddress, userDetails);
         return this;
     }
 
     public ExchangeSessionBuilder<T> useTurn(InetSocketAddress turnAddress) {
-        this.turnAddress = turnAddress;
+        this.turnConfig = new StunProperties(turnAddress, null);
+        return this;
+    }
+
+    public ExchangeSessionBuilder<T> useTurn(InetSocketAddress turnAddress, String username, String password, String realm) {
+        UserDetails userDetails = new UserDetails(username, password, realm);
+        this.turnConfig = new StunProperties(turnAddress, userDetails);
         return this;
     }
 
@@ -73,7 +87,7 @@ public class ExchangeSessionBuilder<T extends ClientProtocol<?>> {
         this.maxPort = Optional.ofNullable(this.maxPort).orElse(MAX_PORT);
         this.realm = Optional.ofNullable(this.realm).orElse("default");
 
-        return new ExchangeSession<>(sockets, hostId, stunAddress, turnAddress, socketTimeout, realm, minPort, maxPort);
+        return new ExchangeSession<>(sockets, hostId, stunConfig, turnConfig, socketTimeout, realm, minPort, maxPort);
     }
 
 }

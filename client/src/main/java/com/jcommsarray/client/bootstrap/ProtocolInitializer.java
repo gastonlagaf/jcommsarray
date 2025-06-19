@@ -24,8 +24,8 @@ public class ProtocolInitializer {
             try {
                 InetSocketAddress socketAddress = new InetSocketAddress(inetAddress, port);
                 ClientProperties clientProperties = new ClientProperties(
-                        socketAddress, originalProperties.getTargetAddress(), originalProperties.getStunAddress(),
-                        originalProperties.getTurnAddress(), originalProperties.getSocketTimeout()
+                        socketAddress, originalProperties.getTargetAddress(), originalProperties.getStunConfig(),
+                        originalProperties.getTurnConfig(), originalProperties.getSocketTimeout()
                 );
                 T protocol = protocolFactory.apply(clientProperties);
                 protocol.start();

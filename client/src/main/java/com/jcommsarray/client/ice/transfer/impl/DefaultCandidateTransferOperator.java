@@ -35,7 +35,7 @@ public class DefaultCandidateTransferOperator<T extends ClientProtocol<?>> imple
         List<AddressCandidate> addressCandidates = candidates.stream()
                 .map(it -> new AddressCandidate(it.getPriority(), it.getType().name(), it.getActualAddress()))
                 .toList();
-        SignalingSubscriber signalingSubscriber = signalingClient.invite(
+        SignalingSubscriber signalingSubscriber = signalingClient. invite(
                 sessionId, targetContactId, addressCandidates, password
         ).join();
         SortedSet<Candidate> opponentCandidates = signalingSubscriber.getAddresses().stream()

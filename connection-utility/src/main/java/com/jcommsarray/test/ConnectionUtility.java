@@ -94,7 +94,7 @@ public class ConnectionUtility {
     private static void receiverMode(String hostId, UdpSockets udpSockets, ExchangeSession<PureProtocol> exchangeSession) {
         if (null == hostId) {
             ClientProperties clientProperties = new ClientProperties(
-                    null, null, null, null, 500L
+                    null, null, (InetSocketAddress) null, null, 500L
             );
             ProtocolInitializer protocolInitializer = new ProtocolInitializer(1024, 65535);
             PureProtocol pureProtocol = protocolInitializer.init(

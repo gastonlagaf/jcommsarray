@@ -116,8 +116,8 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
         ClientProperties clientProperties = new ClientProperties(
                 null,
                 targetAddress,
-                exchangeSession.stunAddress,
-                exchangeSession.turnAddress,
+                exchangeSession.stunConfig,
+                exchangeSession.turnConfig,
                 exchangeSession.socketTimeout.toMillis()
         );
         return protocolInitializer.init(
@@ -155,7 +155,7 @@ public class PeerConnection<T extends ClientProtocol<?>> implements Closeable {
                 exchangeSession.hostId, opponentId, exchangeSession.realm, iceRole, 1, 3, exchangeSession.minPort, exchangeSession.maxPort
         );
         ClientProperties clientProperties = new ClientProperties(
-                null, null, exchangeSession.stunAddress, exchangeSession.turnAddress,
+                null, null, exchangeSession.stunConfig, exchangeSession.turnConfig,
                 Optional.ofNullable(exchangeSession.socketTimeout).orElseGet(() -> Duration.ofSeconds(5L)).toMillis()
         );
 

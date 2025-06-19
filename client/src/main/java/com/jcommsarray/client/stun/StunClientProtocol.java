@@ -10,6 +10,7 @@ import com.jcommsarray.test.socket.UdpSockets;
 import com.jcommsarray.turn.codec.impl.MessageCodec;
 import com.jcommsarray.turn.model.Message;
 import com.jcommsarray.turn.model.NatBehaviour;
+import com.jcommsarray.turn.model.PasswordAlgorithm;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -17,10 +18,11 @@ import java.util.HexFormat;
 
 public class StunClientProtocol extends TurnAwareClientProtocol<Message> {
 
-    private final CommunicationCodec<Message> codec = new MessageCodec();
+    private final CommunicationCodec<Message> codec;
 
     public StunClientProtocol(UdpSockets udpSockets, ClientProperties clientProperties) {
         super(NatBehaviour.NO_NAT, clientProperties, udpSockets);
+        this.codec = new MessageCodec(clientProperties.getStunConfig().getUserDetails(), PasswordAlgorithm.SHA256);
     }
 
     @Override
